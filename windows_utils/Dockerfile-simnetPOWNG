@@ -5,23 +5,11 @@ WORKDIR /usr/hsd
 RUN apt-get update
 RUN apt-get install libunbound-dev -y
 
-RUN git clone https://github.com/alexsmith540/hsd.git /usr/hsd
-
-RUN git checkout pow-ng
+RUN git clone https://github.com/handshake-org/hsd.git /usr/hsd
 
 RUN npm install --production
 
 RUN npm install github:HandshakeAlliance/hstratum#feature_pow_ng
-
-RUN rm -rf node_modules/hsd
-
-RUN git clone https://github.com/alexsmith540/hsd.git /usr/hsd/node_modules/hsd
-
-WORKDIR /usr/hsd/node_modules/hsd
-
-RUN git checkout pow-ng
-
-WORKDIR /usr/hsd
 
 COPY ./run.sh run.sh
 

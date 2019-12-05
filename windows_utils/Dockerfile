@@ -9,7 +9,7 @@ RUN git clone https://github.com/handshake-org/hsd.git /usr/hsd
 
 RUN npm install --production
 
-RUN npm install github:HandshakeAlliance/hstratum
+RUN npm install github:HandshakeAlliance/hstratum#feature_pow_ng
 
 COPY ./run.sh run.sh
 

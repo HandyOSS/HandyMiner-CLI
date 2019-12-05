@@ -55,8 +55,8 @@ class CLIDashboard{
 			if(!err){
 				this.config = JSON.parse(data.toString('utf8'));
 				//console.log('starting miner')
-				this.initBlessed();
 				this.startMiner();
+				this.initBlessed();
 				this.startPowerTimer();
 			}
 			else{
@@ -65,8 +65,8 @@ class CLIDashboard{
 				configurator.configure(()=>{
 					this.config = JSON.parse(fs.readFileSync(__dirname+'/../config.json','utf8'));
 					//let miner = new HandyMiner();
-					this.initBlessed();
 					this.startMiner();
+					this.initBlessed();
 					this.startPowerTimer();
 
 				});
@@ -77,14 +77,18 @@ class CLIDashboard{
 	initBlessed(){
 		this.screen = blessed.screen();
 		this.grid = new contrib.grid({rows: 4, cols: this.gridWidth, screen: this.screen})
-		
+		let _this = this;
 	    this.screen.key(['escape', 'q', 'C-c'], (ch, key)=> {
-		  	if(typeof this.minerProcess != "undefined"){
-		  		this.minerProcess.kill();
-		  	}
+		  	
 		  	this.screen.destroy();
+		  	
 		  	this.rainbow();
-		    return process.exit(0);
+		  	if(typeof this.minerProcess != "undefined"){
+		  		this.minerProcess.stdin.pause();
+		  		this.minerProcess.kill();
+		  		
+		  	}
+		  	return process.exit(0);
 	    });
 	}
 	startPowerTimer(){
@@ -349,175 +353,196 @@ class CLIDashboard{
 	getPowerMetricsLinux(){
 		let strAMD = '';
 		let strNVDA = '';
+		if(typeof this.gpus == "undefined"){
+			return false;
+		}
 		if(typeof this.linuxRocmInfo == "undefined"){
 			//--showproductname
 			this.getLinuxRocmNames();
 			//return;
 		}
-		let procAMD = spawn('./gpu_stats/linux/rocm-smi',['-a','--json'],{env:process.env});
-		let procNVDA = spawn('nvidia-smi',['--query-gpu=temperature.memory,temperature.gpu,fan.speed,power.draw,clocks.current.memory,clocks.current.graphics,clocks.current.sm,gpu_name,pci.device,utilization.gpu', '--format=csv'],{env:process.env});
-		procAMD.stdout.on('data',d=>{
-			strAMD += d.toString('utf8');
-		})
-		procNVDA.stdout.on('data',d=>{
-			strNVDA += d.toString('utf8');
-		})
-		procAMD.stderr.on('data',d=>{
-			//console.log('AMD rocm-smi ERROR',d.toString('utf8'))
-		})
-		procNVDA.stderr.on('data',d=>{
-			//console.log('NVDA nvidia-smi ERROR',d.toString('utf8'))
-		})
-		procAMD.on('close',()=>{
-			//console.log('amd is done',strAMD.split('\n'));
-			//console.log('done with rocm-smi',strAMD);
-			strAMD.split('\n').map(line=>{
-				let objOut;
-				//console.log('line isset?',line);
-				try{
+		let hasNvidiaCardsPresent = false;
+		let hasAMDCardsPresent = false;
+		Object.keys(this.gpus).map(gpuKey=>{
+			let gpu = this.gpus[gpuKey];
+			let mfg = gpu.info.manufacturer.toLowerCase();
+			if(mfg.indexOf('nvidia') >= 0 || mfg.indexOf('geforce') >= 0){
+				hasNvidiaCardsPresent = true;
+			}
+			if(mfg.indexOf('advanced micro') >= 0 || mfg.indexOf('amd') >= 0){
+				hasAMDCardsPresent = true;
+			}
+		});
+		if(hasAMDCardsPresent){
+			let procAMD = spawn('./gpu_stats/linux/rocm-smi',['-a','--json'],{env:process.env});
+			procAMD.stdout.on('data',d=>{
+				strAMD += d.toString('utf8');
+			})
+			procAMD.stderr.on('data',d=>{
+				//console.log('AMD rocm-smi ERROR',d.toString('utf8'))
+			})
 
-					//console.log('wtf line???',line);
-					objOut = JSON.parse(line);
-				}
-				catch(e){
-					objOut = undefined;
-					
-				}
-				//console.log('objOut',objOut);
-				if(typeof objOut == "object"){
-					//success!
-					Object.keys(objOut).map(cardID=>{
-						let card = objOut[cardID];
-						let cardInt = cardID.replace('card','');
-						if(typeof this.linuxRocmInfo != "undefined"){
-							if(typeof this.linuxRocmInfo[cardInt] != "undefined"){
+			procAMD.on('close',()=>{
+				//console.log('amd is done',strAMD.split('\n'));
+				//console.log('done with rocm-smi',strAMD);
+				strAMD.split('\n').map(line=>{
+					let objOut;
+					//console.log('line isset?',line);
+					try{
 
-								//	console.log('has rocm name then',this.linuxRocmInfo[cardInt]);
-								let gpuLen = Object.keys(this.gpus).length;
-								for(let ii=0;ii<gpuLen;ii++){
-									let key = Object.keys(this.gpus)[ii];
-									let gpu = this.gpus[key];
-									let strName = this.linuxRocmInfo[cardInt];
+						//console.log('wtf line???',line);
+						objOut = JSON.parse(line);
+					}
+					catch(e){
+						objOut = undefined;
+						
+					}
+					//console.log('objOut',objOut);
+					if(typeof objOut == "object"){
+						//success!
+						Object.keys(objOut).map(cardID=>{
+							let card = objOut[cardID];
+							let cardInt = cardID.replace('card','');
+							if(typeof this.linuxRocmInfo != "undefined"){
+								if(typeof this.linuxRocmInfo[cardInt] != "undefined"){
 
-									let tempGPU = card["Temperature (Sensor #1)"].replace('C','').trim();
-									let fanPerc = card["Fan Level"].split('(')[1].replace('%)','').trim();
-									let powerW = card["Average Graphics Package Power"].replace('W','').trim();
-									let memClock = card["mclk Clock Level"].split('(')[1].replace('MHz)','').trim();
-									let gpuClock = card["sclk Clock Level"].split('(')[1].replace('MHz)','').trim();
-									let gpuID = card['GPU ID'];
-									let gpuLoad = card["Current GPU use"].replace('%','').trim();
-									let voltage = card["Voltage"].replace('mV','').trim();
+									//	console.log('has rocm name then',this.linuxRocmInfo[cardInt]);
+									let gpuLen = Object.keys(this.gpus).length;
+									for(let ii=0;ii<gpuLen;ii++){
+										let key = Object.keys(this.gpus)[ii];
+										let gpu = this.gpus[key];
+										let strName = this.linuxRocmInfo[cardInt];
 
-									if(typeof gpu.atiID == "undefined"){
-										//ok check name then.
-										//console.log('strname check',strName,gpu.info.name);
-										if(strName.indexOf(gpu.info.name) >= 0){
-											//matchville
-											this.gpus[key].atiID = cardID;//gpuID;
-											this.gpus[key].data.temperature.push({temperature:parseFloat(tempGPU),time:moment().format('HH:mm')});
-											this.gpus[key].data.fan.push({fans:parseFloat(fanPerc),time:moment().format('HH:mm')});
-											this.gpus[key].data.gpuCoreClock.push({clock:parseFloat(gpuClock),time:moment().format('HH:mm')});
-											this.gpus[key].data.gpuMemoryClock.push({clock:parseFloat(memClock),time:moment().format('HH:mm')});
-											this.gpus[key].data.power.push({power:parseFloat(powerW),time:moment().format('HH:mm')});
-											this.gpus[key].data.voltage.push({voltage:parseFloat(voltage),time:moment().format('HH:mm')});
-											
-											//console.log('did set infos for gpu',key);
-											break;
+										let tempGPU = card["Temperature (Sensor #1)"].replace('C','').trim();
+										let fanPerc = card["Fan Level"].split('(')[1].replace('%)','').trim();
+										let powerW = card["Average Graphics Package Power"].replace('W','').trim();
+										let memClock = card["mclk Clock Level"].split('(')[1].replace('MHz)','').trim();
+										let gpuClock = card["sclk Clock Level"].split('(')[1].replace('MHz)','').trim();
+										let gpuID = card['GPU ID'];
+										let gpuLoad = card["Current GPU use"].replace('%','').trim();
+										let voltage = card["Voltage"].replace('mV','').trim();
+
+										if(typeof gpu.atiID == "undefined"){
+											//ok check name then.
+											//console.log('strname check',strName,gpu.info.name);
+											if(strName.indexOf(gpu.info.name) >= 0){
+												//matchville
+												this.gpus[key].atiID = cardID;//gpuID;
+												this.gpus[key].data.temperature.push({temperature:parseFloat(tempGPU),time:moment().format('HH:mm')});
+												this.gpus[key].data.fan.push({fans:parseFloat(fanPerc),time:moment().format('HH:mm')});
+												this.gpus[key].data.gpuCoreClock.push({clock:parseFloat(gpuClock),time:moment().format('HH:mm')});
+												this.gpus[key].data.gpuMemoryClock.push({clock:parseFloat(memClock),time:moment().format('HH:mm')});
+												this.gpus[key].data.power.push({power:parseFloat(powerW),time:moment().format('HH:mm')});
+												this.gpus[key].data.voltage.push({voltage:parseFloat(voltage),time:moment().format('HH:mm')});
+												
+												//console.log('did set infos for gpu',key);
+												break;
+											}
+
 										}
-
-									}
-									else{
-										//ok is it the same then?
-										if(gpu.atiID == cardID && strName.indexOf(gpu.info.name) >= 0){
-											//ok fair to say this is our match
-											this.gpus[key].data.temperature.push({temperature:parseFloat(tempGPU),time:moment().format('HH:mm')});
-											this.gpus[key].data.fan.push({fans:parseFloat(fanPerc),time:moment().format('HH:mm')});
-											this.gpus[key].data.gpuCoreClock.push({clock:parseFloat(gpuClock),time:moment().format('HH:mm')});
-											this.gpus[key].data.gpuMemoryClock.push({clock:parseFloat(memClock),time:moment().format('HH:mm')});
-											this.gpus[key].data.power.push({power:parseFloat(powerW),time:moment().format('HH:mm')});
-											this.gpus[key].data.voltage.push({voltage:parseFloat(voltage),time:moment().format('HH:mm')});
-											
-											break;
+										else{
+											//ok is it the same then?
+											if(gpu.atiID == cardID && strName.indexOf(gpu.info.name) >= 0){
+												//ok fair to say this is our match
+												this.gpus[key].data.temperature.push({temperature:parseFloat(tempGPU),time:moment().format('HH:mm')});
+												this.gpus[key].data.fan.push({fans:parseFloat(fanPerc),time:moment().format('HH:mm')});
+												this.gpus[key].data.gpuCoreClock.push({clock:parseFloat(gpuClock),time:moment().format('HH:mm')});
+												this.gpus[key].data.gpuMemoryClock.push({clock:parseFloat(memClock),time:moment().format('HH:mm')});
+												this.gpus[key].data.power.push({power:parseFloat(powerW),time:moment().format('HH:mm')});
+												this.gpus[key].data.voltage.push({voltage:parseFloat(voltage),time:moment().format('HH:mm')});
+												
+												break;
+											}
 										}
 									}
 								}
 							}
-						}
-					})
-					//console.log('got rocm json line',objOut);
-				}
+						})
+						//console.log('got rocm json line',objOut);
+					}
+				})
+			});
+		}
+		if(hasNvidiaCardsPresent){
+			let procNVDA = spawn('nvidia-smi',['--query-gpu=temperature.memory,temperature.gpu,fan.speed,power.draw,clocks.current.memory,clocks.current.graphics,clocks.current.sm,gpu_name,pci.device,utilization.gpu', '--format=csv'],{env:process.env});
+			procNVDA.stdout.on('data',d=>{
+				strNVDA += d.toString('utf8');
 			})
-		})
-		procNVDA.on('close',()=>{
-			//console.log('done with nvidia-smi',strNVDA);
-			let lines = strNVDA.split('\n');
-			for(let i=1;i<lines.length;i++){
-				//console.log('line',i,lines[i]);
+			
+			procNVDA.stderr.on('data',d=>{
+				//console.log('NVDA nvidia-smi ERROR',d.toString('utf8'))
+			})
+			procNVDA.on('close',()=>{
+				//console.log('done with nvidia-smi',strNVDA);
+				let lines = strNVDA.split('\n');
+				for(let i=1;i<lines.length;i++){
+					//console.log('line',i,lines[i]);
 
-				let vals = lines[i].split(',');
-				
-				if(vals.length <= 1){
-					break;
-				}
-				let tempMem = vals[0];
-				let tempGPU = vals[1];
-				let fanPerc = vals[2].replace('%','').trim();
-				let powerW = vals[3].replace('W','').trim();
-				let memClock = vals[4].replace('MHz','').trim();
-				let gpuClock = vals[5].replace('MHz','').trim();
-				let strName = vals[7];
-				let gpuID = parseInt(vals[8],16);
-				let gpuLoad = vals[9].replace('%','').trim();
-				let len = Object.keys(this.gpus).length;
-				//console.log('we have info tho',vals);
-				for(let ii=0;ii<len;ii++){
-					let key = Object.keys(this.gpus)[ii];
-					let gpu	= this.gpus[key];
-
-					if(typeof gpu.atiID == "undefined"){
-						//ok check name then.
-						//console.log('strname check',strName,gpu.info.name);
-						if(strName.indexOf(gpu.info.name) >= 0){
-							//matchville
-							gpu.atiID = gpuID;
-							this.gpus[key].data.temperature.push({temperature:parseFloat(tempGPU),time:moment().format('HH:mm')});
-							this.gpus[key].data.fan.push({fans:parseFloat(fanPerc),time:moment().format('HH:mm')});
-							this.gpus[key].data.gpuCoreClock.push({clock:parseFloat(gpuClock),time:moment().format('HH:mm')});
-							this.gpus[key].data.gpuMemoryClock.push({clock:parseFloat(memClock),time:moment().format('HH:mm')});
-							this.gpus[key].data.power.push({power:parseFloat(powerW),time:moment().format('HH:mm')});
-							//console.log('did set infos for gpu',key);
-							break;
-						}
-
+					let vals = lines[i].split(',');
+					
+					if(vals.length <= 1){
+						break;
 					}
-					else{
-						//ok is it the same then?
-						if(gpu.atiID == gpuID && strName.indexOf(gpu.info.name) >= 0){
-							//ok fair to say this is our match
-							this.gpus[key].data.temperature.push({temparature:parseFloat(tempGPU),time:moment().format('HH:mm')});
-							this.gpus[key].data.fan.push({fans:parseFloat(fanPerc),time:moment().format('HH:mm')});
-							this.gpus[key].data.gpuCoreClock.push({clock:parseFloat(gpuClock),time:moment().format('HH:mm')});
-							this.gpus[key].data.gpuMemoryClock.push({clock:parseFloat(memClock),time:moment().format('HH:mm')});
-							this.gpus[key].data.power.push({power:parseFloat(powerW),time:moment().format('HH:mm')});
-							//console.log('did set infos for gpu',key);
-							/*
-							this.gpus[k].data.temperature.push({temperature:parseFloat(gpu.sensors['temperature'].features[0].v0),time:moment().format('HH:mm')})
-							
-							this.gpus[k].data.fan.push({fans:parseFloat(gpu.sensors['control'].features[0].v0),time:moment().format('HH:mm')});
-							this.gpus[k].data.gpuCoreClock.push({clock:parseFloat(gpu.sensors['clock'].features[0].v0),time:moment().format('HH:mm')});
-							this.gpus[k].data.gpuMemoryClock.push({clock:parseFloat(gpu.sensors['clock'].features[1].v0),time:moment().format('HH:mm')});
-							this.gpus[k].data.voltage.push({voltage:parseFloat(gpu.sensors['voltage'].features[0].v0),time:moment().format('HH:mm')});
-							this.gpus[k].data.load.push({load:parseFloat(gpu.sensors['load'].features[0].v0),time:moment().format('HH:mm')});
-							let power = wattsMax * 1.618 * (parseFloat(gpu.sensors['load'].features[0].v0)/100) * parseFloat(gpu.sensors['voltage'].features[0].v0) ^ 2;
-							this.gpus[k].data.power.push({power:power,time:moment().format('HH:mm')})
-							
-							*/
-							break;
+					let tempMem = vals[0];
+					let tempGPU = vals[1];
+					let fanPerc = vals[2].replace('%','').trim();
+					let powerW = vals[3].replace('W','').trim();
+					let memClock = vals[4].replace('MHz','').trim();
+					let gpuClock = vals[5].replace('MHz','').trim();
+					let strName = vals[7];
+					let gpuID = parseInt(vals[8],16);
+					let gpuLoad = vals[9].replace('%','').trim();
+					let len = Object.keys(this.gpus).length;
+					//console.log('we have info tho',vals);
+					for(let ii=0;ii<len;ii++){
+						let key = Object.keys(this.gpus)[ii];
+						let gpu	= this.gpus[key];
+
+						if(typeof gpu.atiID == "undefined"){
+							//ok check name then.
+							//console.log('strname check',strName,gpu.info.name);
+							if(strName.indexOf(gpu.info.name) >= 0){
+								//matchville
+								gpu.atiID = gpuID;
+								this.gpus[key].data.temperature.push({temperature:parseFloat(tempGPU),time:moment().format('HH:mm')});
+								this.gpus[key].data.fan.push({fans:parseFloat(fanPerc),time:moment().format('HH:mm')});
+								this.gpus[key].data.gpuCoreClock.push({clock:parseFloat(gpuClock),time:moment().format('HH:mm')});
+								this.gpus[key].data.gpuMemoryClock.push({clock:parseFloat(memClock),time:moment().format('HH:mm')});
+								this.gpus[key].data.power.push({power:parseFloat(powerW),time:moment().format('HH:mm')});
+								//console.log('did set infos for gpu',key);
+								break;
+							}
+
+						}
+						else{
+							//ok is it the same then?
+							if(gpu.atiID == gpuID && strName.indexOf(gpu.info.name) >= 0){
+								//ok fair to say this is our match
+								this.gpus[key].data.temperature.push({temparature:parseFloat(tempGPU),time:moment().format('HH:mm')});
+								this.gpus[key].data.fan.push({fans:parseFloat(fanPerc),time:moment().format('HH:mm')});
+								this.gpus[key].data.gpuCoreClock.push({clock:parseFloat(gpuClock),time:moment().format('HH:mm')});
+								this.gpus[key].data.gpuMemoryClock.push({clock:parseFloat(memClock),time:moment().format('HH:mm')});
+								this.gpus[key].data.power.push({power:parseFloat(powerW),time:moment().format('HH:mm')});
+								//console.log('did set infos for gpu',key);
+								/*
+								this.gpus[k].data.temperature.push({temperature:parseFloat(gpu.sensors['temperature'].features[0].v0),time:moment().format('HH:mm')})
+								
+								this.gpus[k].data.fan.push({fans:parseFloat(gpu.sensors['control'].features[0].v0),time:moment().format('HH:mm')});
+								this.gpus[k].data.gpuCoreClock.push({clock:parseFloat(gpu.sensors['clock'].features[0].v0),time:moment().format('HH:mm')});
+								this.gpus[k].data.gpuMemoryClock.push({clock:parseFloat(gpu.sensors['clock'].features[1].v0),time:moment().format('HH:mm')});
+								this.gpus[k].data.voltage.push({voltage:parseFloat(gpu.sensors['voltage'].features[0].v0),time:moment().format('HH:mm')});
+								this.gpus[k].data.load.push({load:parseFloat(gpu.sensors['load'].features[0].v0),time:moment().format('HH:mm')});
+								let power = wattsMax * 1.618 * (parseFloat(gpu.sensors['load'].features[0].v0)/100) * parseFloat(gpu.sensors['voltage'].features[0].v0) ^ 2;
+								this.gpus[k].data.power.push({power:power,time:moment().format('HH:mm')})
+								
+								*/
+								break;
+							}
 						}
 					}
 				}
-			}
-		})
+			});
+		}
 	}
 	getNvidiaGpu(name,id){
 
@@ -886,7 +911,7 @@ class CLIDashboard{
 				}
 			})
 		});
-		this.minerProcess = this.minerProcess;
+		this.minerProcess = minerProcess;
 
 	}
 	initFanfare(json){
@@ -1068,9 +1093,9 @@ class CLIDashboard{
 	}
 	updateStats(data,type){
 		this.statsData[type] = data;
-		let sharesLabel = this.config.mode == 'pool' ? 'Shares' : 'Blocks';
+		
 		let statsData = [
-	  	sharesLabel+': \x1b[36m'+numeral(this.statsData['shares']).format('0a')+'\x1b[0m',
+	  	'Shares: \x1b[36m'+numeral(this.statsData['shares']).format('0a')+'\x1b[0m',
 	  	'Errors: \x1b[36m'+numeral(this.statsData['errors']).format('0a')+'\x1b[0m',
 	  	'Last Share: \x1b[36m'+(typeof this.statsData['last'] == "undefined" ? 'none' : this.statsData['last'].format('MMM-DD HH:mm'))+'\x1b[0m',
 	  	'Started: \x1b[36m'+this.statsData['started'].format('MMM-DD HH:mm')+'\x1b[0m',
@@ -1379,10 +1404,8 @@ class CLIDashboard{
 	 		fV.push(0/*Math.random()*100*/);
 	 	}
 	  energyArea.setData(['Energy \x1b[36m---W\x1b[0m','Fan Speed \x1b[36m--%\x1b[0m'],[eV,fV]);
-	  let sharesLabel = this.config.mode == 'pool' ? 'Shares' : 'Blocks';
-		
 	  let statsData = [
-	  	sharesLabel+': \x1b[36m0\x1b[0m',
+	  	'Shares: \x1b[36m0\x1b[0m',
 	  	'Errors: \x1b[36m0\x1b[0m',
 	  	'Last Share: \x1b[36mnone\x1b[0m',
 	  	'Started: \x1b[36m'+moment().format('MMM-DD HH:mm')+'\x1b[0m',

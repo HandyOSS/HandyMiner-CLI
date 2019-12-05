@@ -1,2 +1,2 @@
 #!/bin/bash
-printf '\e[8;40;140t' && node --max-old-space-size=8196 ./miner/dashboard.js
+node --max-old-space-size=8196 ./miner/dashboard.js

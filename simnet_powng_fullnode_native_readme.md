@@ -1,8 +1,6 @@
 If you dont want to use the docker fullnode utilities and run the fullnode on your native environment you'll need to do the following tweaks during simnet/powng mining.
 
-First, we use the github branch alexsmith540/hsd#pow-ng. Until (HSD PR #249)[https://github.com/handshake-org/hsd/pull/249] is merged you should use github.com/alexsmith540/hsd#pow-ng branch which allows you to sync with peers. The annoying part is that hstratum (the mining stratum plugin for the hsd fullnode) has it's own hsd node_module requirement which will get hsd#master from npm. We have to manually remove ./node_modules/hsd and checkout the branch there as well for stratum to use.
-
-Second, you'll want to sync with the fullnode listed below if you want a gpu-mine-able chain. 
+Note, you'll want to sync with the fullnode listed below if you want a gpu-mine-able chain. 
 
 ###If you want to build your own simnet chain out of the box and not sync: 
 
@@ -35,28 +33,23 @@ Second, you'll want to sync with the fullnode listed below if you want a gpu-min
 
 ####How to setup your HSD::
 
-0. checkout #pow-ng from github:handshake-org/hsd (```git clone https://github.com/handshake-org/hsd.git``` cd into the folder and then ```git checkout pow-ng```)
+0. checkout #pow-ng from github:handshake-org/hsd (```git clone https://github.com/handshake-org/hsd.git```)
 1. ```npm install --production```
-1. ```npm install github:HandshakeAlliance/hstratum#feature_pow_ng```
-2. Crucial annoying step right now:: hstratum is going to install it's own npm module of hsd in node_modules based on hsd master. We dont want that, we need pow-ng right now. How to overcome (annoying for now)::
-cd into node_modules
-```rm -rf hsd```
-clone the git repo into folder hsd (```git clone https://github.com/handshake-org/hsd.git``` ./hsd), cd into the hsd folder you just checked out and: ```git checkout pow-ng```
-2a. Crucial annoying step part 2: hstratum also installs its own version of hsd inside [hsd_repo]/node_modules/hstratum/node_modules..
-```cd [hsd_repo]/node_modules/hstratum/node_modules```
-```rm -rf hsd```
-```cp -r ../../hsd ./hsd```
+2. ```npm install github:HandshakeAlliance/hstratum#feature_pow_ng```
 
 
 
-####How to do all this inside my dockerized hsd-gui container!?
+####How to do all this inside my dockerized hsd container!?
+1. RUNNING IT::: There's a pre-baked .sh script already here for you to run!
+Look inthe folder ```./fullnode_utils```
 
-0. Open git bash terminal in windows
-1. ```docker start earthlabHSD```
-2. ```docker exec -it earthlabHSD bash``` << (should drop you in the docker container in /usr/hsd)
-3. ```git fetch --all```
-4. ```git checkout pow-ng```
-5. pick up at step #1 above
-6. RUNNING IT::: There's a pre-baked .sh script already here for you to run! 
+Linux/Mac CLI: 
 ```./run.sh myWalletString simnet```
-7. Now that HSD is running, just point your CLI config to 127.0.0.1 port 3008
+
+Mac Double Click:
+Edit ```run.mac.command``` OR ```run.powng.mac.command``` (simnet) and add your wallet
+
+Windows Double Click:
+Edit ```run.windows.bat``` OR ```run.powng.windows.bat``` (simnet) and add your wallet
+
+2. Now that HSD is running, just point your CLI config to 127.0.0.1 port 3008

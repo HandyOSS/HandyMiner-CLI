@@ -98,6 +98,10 @@ class HandyMiner {
         this.platformID = process.argv[3];
       }
     }
+    if(typeof process.env.TEMP == "undefined"){
+      process.env.TEMP = '/tmp';
+    }
+    
     /*
     './miner/HandyMiner.js',
       this.config.gpus,
@@ -161,11 +165,14 @@ class HandyMiner {
     if(!fs.existsSync(process.env.HOME+'/.HandyMiner')){
       fs.mkdirSync(process.env.HOME+'/.HandyMiner/');
     }
+    if(!fs.existsSync(process.env.TEMP+'/HandyMiner')){
+      fs.mkdirSync(process.env.TEMP+'/HandyMiner/');
+    }
     if(!fs.existsSync(process.env.HOME+'/.HandyMiner/version.txt')){
       let myMin = Math.floor(Math.random()*59.999);
       fs.writeFileSync(process.env.HOME+'/.HandyMiner/version.txt',myMin);
     }
-    let gpus = this.gpuListString.split(',');
+    let gpus = this.gpuListString.split(',').map(s=>{return s.trim();});
     let platform = this.platformID;
     gpus.map(gpuID=>{
       fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+platform+'_'+gpuID+'.work',"");  
@@ -275,6 +282,7 @@ class HandyMiner {
         //this.gpuWorker.kill();
         this.isKilling = true;
         Object.keys(this.gpuWorkers).map(k=>{
+          this.gpuWorkers[k].stdin.pause();
           this.gpuWorkers[k].kill();
         });
         this.server.destroy();
@@ -645,6 +653,7 @@ class HandyMiner {
                 }
                 if(d.error[1] == 'high-hash'){
                   console.log("\x1b[36mSTRATUM EVENT LOG::\x1b[0m STALE SUBMIT");
+
                   //prob jumped the gun, lets generate work
                   this.generateWork();
                 }
@@ -771,6 +780,9 @@ class HandyMiner {
   spawnGPUWorker(gpuID,gpuArrayI){
 
     let envVars = process.env;
+    if(typeof envVars.TEMP == "undefined"){
+      envVars.TEMP = '/tmp';
+    }
     let executableFileName = './cBlakeMiner_AMD';
     let gpuMfg = this.config.gpu_mfg.toLowerCase() || 'nvidia';
     if(gpuMfg.indexOf(',') > 0){
@@ -821,9 +833,10 @@ class HandyMiner {
         }*/
     });
     this.gpuWorkers[gpuID] = miner;
-    miner.stdin.on('data',(data)=> {
+    this.gpuWorkers[gpuID].stdin.write("registration\r\n");
+    /*miner.stdin.on('data',(data)=> {
       console.log('miner stdin',data.toString('utf8'));
-    })
+    })*/
 
     
     miner.stdout.on('data', (data) => {
@@ -843,10 +856,11 @@ class HandyMiner {
       catch(e){
         //console.log('caught E',e);
         //console.log('error parsing json',data.toString('utf8'))
-        let rawLinesJSON = data.toString('utf8').split('\r\n');
+        let rawLinesJSON = data.toString('utf8').split('\n');
         rawLinesJSON = rawLinesJSON.filter((d)=>{
           return d.length > 1;
         }).map((d)=>{
+          d = d.trim();
           return JSON.parse(d);
         });
         parseLines(lastRespParams,rawLinesJSON);
@@ -885,8 +899,16 @@ class HandyMiner {
       });
       if(logs.length > 0){
         if(process.env.HANDYRAW){
+
           let gpuID = _this.gpuListString;
+
           logs = logs.map(line=>{
+            if(typeof line.gpuid_set_work != "undefined"){
+              gpuID = line.gpuid_set_work;
+            }
+            if(typeof line.gpuID != "undefined"){
+              gpuID = line.gpuID;
+            }
             line.gpuID = parseInt(gpuID);
             return line;
           });
@@ -950,6 +972,7 @@ class HandyMiner {
             data:outStatus,
             type:'status'
           };
+
           process.stdout.write(JSON.stringify(statusResp)+'\n');
         }
         else{
@@ -1089,6 +1112,7 @@ class HandyMiner {
           if(!_this.isMGoing && _this.config.mode == 'solo'){
 
               console.log("\x1b[31mPREVENT BLOCK SUBMIT: ALREADY SUBMITTED THIS NONCE\x1b[0m");
+              console.log('submission',submission,outJSON);
               _this.generateWork();
           }
           //_this.solutionCache.push({id:jobID,method:'mining.submit',params:submission});
@@ -1159,7 +1183,7 @@ class HandyMiner {
       console.log("\x1b[36mHANDY:: STARTING MINER\x1b[0m ",_this.gpuListString,_this.platformID)
     }*/
     if(_this.gpuListString != '-1'){
-      _this.gpuListString.split(',').map((gpuID,gpuI)=>{
+      _this.gpuListString.split(',').map(s=>{return s.trim();}).map((gpuID,gpuI)=>{
         _this.spawnGPUWorker(gpuID,gpuI);
       });
     }
@@ -1203,14 +1227,14 @@ class HandyMiner {
   generateWork(){
     //here
     const _this = this;
-    let workObjects = this.gpuListString.split(',').map(function(gpuID,gpuArrayI){
+    let workObjects = this.gpuListString.split(',').map(s=>{return s.trim();}).map(function(gpuID,gpuArrayI){
       let platformID = _this.platformID;
       if(platformID.split(',').length > 1){
-        platformID = platformID.split(',')[gpuArrayI];
+        platformID = platformID.split(',')[gpuArrayI].trim();
       }
       let intensity = _this.minerIntensity.toString();
       if(intensity.split(',').length > 1){
-        intensity = intensity.split(',')[gpuArrayI];
+        intensity = intensity.split(',')[gpuArrayI].trim();
       }
       _this.intensitiesIndex[gpuID+'_'+platformID] = parseFloat(intensity);
       
@@ -1379,8 +1403,84 @@ class HandyMiner {
         intensity:workObject.intensity
       };
 
+      //now write work
+      let d = _this.gpuDeviceBlocks[workObject.id+'_'+workObject.platform];
+      let intensity = d.intensity;
+      if(typeof intensity == "undefined"){
+        intensity = 0;
+        if(_this.minerIntensity.split(',').length == 1){
+          intensity = _this.minerIntensity;
+        }
+      }
+      else if(typeof intensity == 'string'){
+        intensity = intensity.trim();
+      }
+      let messageContent = d.gpu+'|'+intensity+'|'+(d.work.header.toString('hex'))+'|'+(d.work.pad8.toString('hex'))+'|'+(d.work.pad32.toString('hex'))+'|'+(d.work.target.toString('hex'))+'|';
+      messageStrings.push(messageContent);
+      if(typeof _this.gpuWorkers[d.gpu] != "undefined"){
+        _this.gpuWorkers[d.gpu].stdin.write(messageContent+"\r\n");  
+      }
+
+      tryWrite(0,d.platform,d.gpu,messageContent);
+      function tryWrite(attemptCount,platform,gpu,blockHeader){
+          //try to write the temp work file, if it fails try again
+          fs.writeFile(process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work.temp',blockHeader,(err,data)=>{
+            if(err){
+              //console.log("ERROR WRITING WORK FOR",d.gpu);
+              if(attemptCount <= 2){
+                //console.error("\x1b[36mERROR IN WORK CREATE\x1b[0m",attemptCount);
+                setTimeout(()=>{
+                  tryWrite(attemptCount + 1,platform,gpu,blockHeader);
+                },10);
+              }
+            }
+            else{
+                /*if(attemptCount > 0){
+                  console.log("\x1b[36mSUCCESSFUL WORK CREATE\x1b[0m",attemptCount);
+                }*/
+                tryRename(0,platform,gpu);
+            }
+          });
+      }
+      function tryRename(attemptCount,platform,gpu){
+        fs.rename(
+          process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work.temp',
+          process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work',
+          (err2,data2)=>{
+            if(err2){
+              //console.error("\x1b[36mERROR IN WORK RENAME\x1b[0m",attemptCount);
+              if(attemptCount <= 2){
+                setTimeout(()=>{
+                  tryRename(attemptCount+1,platform,gpu);
+                },10);  
+              }
+              //console.log("ERROR MOVING TEMP WORK FOR",d.gpu);
+            }
+            /*else{
+              if(attemptCount > 0){
+                console.error("\x1b[36mSUCCESSFUL WORK RENAME\x1b[0m");
+              }
+            }*/
+          }
+        );
+      }
+      
+
+      
+      /*setTimeout(function(){
+        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
+      },121);
+      setTimeout(function(){
+        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
+      },565);*/
+      //Note: I dont feel great about this setTimeout nonsense here but its the only way to prevent race conditions rn...
+      if(process.env.HANDYRAW){
+        //log our difficulty and target information for dashboardface
+        process.stdout.write(JSON.stringify({difficulty:d.work.blockTemplate.difficulty,target:d.work.blockTemplate.target.toString('hex'),gpu:d.gpu,platform:d.platform,type:'difficulty'})+'\n');
+      }
     });
     Object.keys(_this.gpuDeviceBlocks).map(function(k){
+      return false; //deprecate, causing race conditions..
       //iterate thru existing jobs in case this was a singular nonce overflow job
       let d = _this.gpuDeviceBlocks[k];
       let intensity = d.intensity;
@@ -1390,17 +1490,36 @@ class HandyMiner {
           intensity = _this.minerIntensity;
         }
       }
+      
       let messageContent = d.gpu+'|'+intensity+'|'+(d.work.header.toString('hex'))+'|'+(d.work.pad8.toString('hex'))+'|'+(d.work.pad32.toString('hex'))+'|'+(d.work.target.toString('hex'))+'|';
       messageStrings.push(messageContent);
-
-      fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
+      if(typeof _this.gpuWorkers[d.gpu] != "undefined"){
+        _this.gpuWorkers[d.gpu].stdin.write(messageContent+"\r\n");  
+      }
       
-      setTimeout(function(){
+      fs.writeFile(process.env.TEMP+'/HandyMiner/'+d.platform+'_'+d.gpu+'.work.temp',messageContent,(err,data)=>{
+        if(err){
+          //console.log("ERROR WRITING WORK FOR",d.gpu);
+        }
+        fs.rename(
+          process.env.TEMP+'/HandyMiner/'+d.platform+'_'+d.gpu+'.work.temp',
+          process.env.TEMP+'/HandyMiner/'+d.platform+'_'+d.gpu+'.work',
+          (err2,data2)=>{
+            if(err2){
+              //console.log("ERROR MOVING TEMP WORK FOR",d.gpu);
+            }
+          }
+        );
+
+      });
+
+      
+      /*setTimeout(function(){
         fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
       },121);
       setTimeout(function(){
         fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
-      },565);
+      },565);*/
       //Note: I dont feel great about this setTimeout nonsense here but its the only way to prevent race conditions rn...
       if(process.env.HANDYRAW){
         //log our difficulty and target information for dashboardface
@@ -1409,7 +1528,7 @@ class HandyMiner {
     });
 
 
-    fs.writeFileSync(process.env.HOME+'/.HandyMiner/miner.work',messageStrings.join('\n'));
+    //fs.writeFileSync(process.env.HOME+'/.HandyMiner/miner.work',messageStrings.join('\n'));
     
     if(process.env.HANDYRAW){
       process.stdout.write(JSON.stringify({type:'job',data:"HANDY MINER:: WROTE NEW WORK FOR MINERS"})+'\n')

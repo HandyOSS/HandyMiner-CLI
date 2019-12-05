@@ -22,7 +22,7 @@
     "buffer-map": "0.0.5",
     "bufio": "^1.0.4",
     "exit-hook": "^2.2.0",
-    "hsd": "github:handshake-org/hsd#pow-ng",
+    "hsd": "github:handshake-org/hsd",
     "hstratum": "github:HandshakeAlliance/hstratum#feature_pow_ng",
     "inquirer": "^7.0.0",
     "moment": "^2.24.0",
