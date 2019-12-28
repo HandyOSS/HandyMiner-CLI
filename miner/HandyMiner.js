@@ -160,7 +160,7 @@ class HandyMiner {
       process.stdout.write(JSON.stringify({type:'stratumLog',data:'stratum will try to connect '+this.host+':'+this.port})+'\n')
     }
     else{
-      console.log('\x1b[36mstratum will try to connect\x1b[0m'+this.host+':'+this.port);
+      console.log('\x1b[36mstratum will try to connect \x1b[0m'+this.host+':'+this.port);
     }
     if(!fs.existsSync(process.env.HOME+'/.HandyMiner')){
       fs.mkdirSync(process.env.HOME+'/.HandyMiner/');
@@ -333,7 +333,7 @@ class HandyMiner {
         this.startSocket();
         
       }
-      if(this.hasConnectionError && !this.isKilling){
+      else if(this.hasConnectionError && !this.isKilling){
         //we had trouble connecting/reconnecting
         console.log('restart socket');
         if(typeof this.restartTimeout != "undefined"){
@@ -432,7 +432,7 @@ class HandyMiner {
     resp.map((d)=>{
       switch(d.method){
         case 'mining.notify':
-          if(this.isMGoing){
+          if(/*this.isMGoing*/isLocalResponse){
             this.lastLocalResponse = d;
             //this.refreshAllJobs();
           }
@@ -627,7 +627,7 @@ class HandyMiner {
                 process.stdout.write(JSON.stringify({type:'confirmation',message:'Received Confirmation Response',data:d})+'\n')
               }
               else{
-                console.log('HANDY:: \x1b[36mCOMFIRMATION RESPONSE!\x1b[0m',d);
+                console.log('HANDY:: \x1b[36mCONFIRMATION RESPONSE!\x1b[0m',d);
               }
 
               
@@ -759,6 +759,7 @@ class HandyMiner {
     const hdrRaw = bt.getHeader(0, parseInt(time,16), extraNonce, mask);
     const hdr = Headers.fromMiner(hdrRaw);
     const data = hdr.toPrehead();
+    //console.log('next header',data.toString('hex'));
     const pad8 = hdr.padding(8);
     const pad32 = hdr.padding(32);
     const targetString = bt.target.toString('hex');
@@ -1095,6 +1096,7 @@ class HandyMiner {
         //console.log('submission isset',submission,proof.powHash());
         //console.log('submission data',lastJob.work.blockTemplate);
         //return false;
+        
         if(_this.solutionCache.indexOf(outJSON.nonce) == -1){
           
           let server = _this.server;
@@ -1106,13 +1108,17 @@ class HandyMiner {
             method:'mining.submit',
             params:submission
           })+"\n"); //submit to stratum
+          //console.log('wrote solution',submission,outJSON);
+          if(_this.solutionCache.length > 10){
+            _this.solutionCache = _this.solutionCache.slice(-5);
+          }
           _this.solutionCache.push(outJSON.nonce);
         }
         else{
           if(!_this.isMGoing && _this.config.mode == 'solo'){
 
               console.log("\x1b[31mPREVENT BLOCK SUBMIT: ALREADY SUBMITTED THIS NONCE\x1b[0m");
-              console.log('submission',submission,outJSON);
+              //console.log('submission',submission,outJSON);
               _this.generateWork();
           }
           //_this.solutionCache.push({id:jobID,method:'mining.submit',params:submission});
@@ -1264,6 +1270,8 @@ class HandyMiner {
         fs.writeFileSync(process.env.HOME+'/.HandyMiner/version.txt',mTarget);
       }
     }
+
+    
     this.isMGoing = false;
     if(typeof this.mCheck != "undefined"){
       clearInterval(this.mCheck);
@@ -1417,24 +1425,37 @@ class HandyMiner {
       }
       let messageContent = d.gpu+'|'+intensity+'|'+(d.work.header.toString('hex'))+'|'+(d.work.pad8.toString('hex'))+'|'+(d.work.pad32.toString('hex'))+'|'+(d.work.target.toString('hex'))+'|';
       messageStrings.push(messageContent);
-      if(typeof _this.gpuWorkers[d.gpu] != "undefined"){
+      /*if(typeof _this.gpuWorkers[d.gpu] != "undefined"){
         _this.gpuWorkers[d.gpu].stdin.write(messageContent+"\r\n");  
+      }*/
+      if(typeof _this.writeOps == "undefined"){
+          _this.writeOps = {};
+        }
+      if(typeof _this.writeOps[d.platform+'_'+d.gpu] != "undefined"){
+        clearTimeout(_this.writeOps[d.platform+'_'+d.gpu]);
+        delete _this.writeOps[d.platform+'_'+d.gpu];
+        tryWrite(0,d.platform,d.gpu,messageContent);
       }
-
-      tryWrite(0,d.platform,d.gpu,messageContent);
+      else{
+        tryWrite(0,d.platform,d.gpu,messageContent);
+      }
+      
       function tryWrite(attemptCount,platform,gpu,blockHeader){
+        
+
           //try to write the temp work file, if it fails try again
           fs.writeFile(process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work.temp',blockHeader,(err,data)=>{
             if(err){
               //console.log("ERROR WRITING WORK FOR",d.gpu);
               if(attemptCount <= 2){
                 //console.error("\x1b[36mERROR IN WORK CREATE\x1b[0m",attemptCount);
-                setTimeout(()=>{
+                /*setTimeout(()=>{
                   tryWrite(attemptCount + 1,platform,gpu,blockHeader);
-                },10);
+                },100);*/
               }
             }
             else{
+              //console.log("WRITE TEMP WORK SUCCESS");
                 /*if(attemptCount > 0){
                   console.log("\x1b[36mSUCCESSFUL WORK CREATE\x1b[0m",attemptCount);
                 }*/
@@ -1443,24 +1464,24 @@ class HandyMiner {
           });
       }
       function tryRename(attemptCount,platform,gpu){
-        fs.rename(
+        fs.copyFile(
           process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work.temp',
           process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work',
           (err2,data2)=>{
             if(err2){
-              //console.error("\x1b[36mERROR IN WORK RENAME\x1b[0m",attemptCount);
+              console.error("\x1b[36mERROR IN WORK RENAME\x1b[0m",attemptCount);
               if(attemptCount <= 2){
-                setTimeout(()=>{
+                _this.writeOps[platform+'_'+gpu] = setTimeout(()=>{
                   tryRename(attemptCount+1,platform,gpu);
-                },10);  
+                },100);  
               }
-              //console.log("ERROR MOVING TEMP WORK FOR",d.gpu);
+              console.log("ERROR MOVING TEMP WORK FOR",d.gpu);
             }
-            /*else{
+            else{
               if(attemptCount > 0){
                 console.error("\x1b[36mSUCCESSFUL WORK RENAME\x1b[0m");
               }
-            }*/
+            }
           }
         );
       }
