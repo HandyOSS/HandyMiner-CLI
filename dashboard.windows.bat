@@ -1,0 +1,1 @@
+mode con: cols=150 lines=50 && "C:\Program Files\Git\bin\bash.exe" --login -i -c "node --max-old-space-size=8196 miner/dashboard.js && sleep 3"

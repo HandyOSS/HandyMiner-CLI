@@ -1,0 +1,13 @@
+{
+	"gpus":"0",
+	"gpu_platform":"1",
+	"gpu_mfg":"nvidia",
+	"intensity":11,
+	"host":"3.14.224.108",
+	"port":"3008",
+	"stratum_user":"earthlabWINDOWSTEST",
+	"stratum_pass":"earthlab",
+	"wallet":"ts1qlt6tgdmyplg4xtgq2hpc0ek842w5vkrqpu9jjm",
+	"mode":"solo",
+	"poolDifficulty":10
+}

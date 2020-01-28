@@ -1,7 +1,7 @@
 HANDYMINER
 2019 Alex Smith <alex.smith@earthlab.tech>
 
-A simple wrapper for cBlake OpenCL Miner
+A simple wrapper for cBlake PoW-NG OpenCL Miner
 to communicate with Handshake HSD via Stratum (hstratum)
 
 ```
@@ -23,176 +23,122 @@ EPIC Thanks to the Handshake Alliance for being a solid team
 
 EPIC Thanks to Steven McKie for being my mentor/believing in me
 
-# MINER SETUP GUIDE
+### BEFORE YOU GET STARTED WITH POW-NG
 
-## Prerequisites:
-0. **OpenCL support for AMD or NVIDIA GPUs**
+This current iteration is specific to the Next-Generation PoW work in Handshake. It will only be available on simnet as of writing this readme (9/27/2019) until we see the next testnet launch, at which time there will be updates. All the resources included in this particular distribution will be scoped to simnet network and handshake-org/hsd#pow-ng hsd fullnode. Using this on testnet 4 will not work for you. If you intent to mine to an existing fullnode you'll need a specific hsd branch, please see simnet_powng_fullnode_native_readme.md (or use the provided docker pow-ng fullnode)
 
-    Windows/Mac: Built-in, you can skip this.
+### PREREQUISITES
 
-    Linux: try adding the following packages in apt: 
-    ```
-    sudo add-apt-repository ppa:graphics-drivers
+[node.js](https://nodejs.org) v10.4 - v11+-ish (whatever one has bigint support)
 
-    NVIDIA:
-    nvidia-compute-utils-[latest]
-    nvidia-utils-[latest]
-    nvidia-cuda-toolkit
+(optional) [docker](#dockerReminders) if you want to run your own fullnode to mine to with the provided utilities
 
-    AMD
-    //download the drivers (.run file) from AMD.
-    amdgpu-pro-install --opencl=pal,legacy --headless //--opencl=rocm for >vega cards
-    //there is a nice rocm-* packages in apt lately for >= vega cards. It doesnt like RX**0 cards tho.
-    ```
+(windows) [git bash](https://git-scm.com/downloads) A handy bash terminal
 
-1. (Windows Only) **A 64-bit terminal of your choice**:
-    - [Git Bash](https://git-scm.com/downloads)
-    - [mingw-64 8.1.0 with gcc aka "MinGW-W64-install.exe"](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-posix/dwarf/)
+(windows) [mingw-64 8.1.0 with gcc aka "MinGW-W64-install.exe"](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-posix/dwarf/) bash terminal utilities, please add the installation /bin folder to your Path environment variable
 
-2. **[node.js](https://nodejs.org) v10.4 - v11+-ish (whatever one has bigint support)**
+Linux: OpenCL Drivers and dependencies install can be found in [./linux_installation.md](./linux_installation.md)
 
-  Mac/Windows: use the link ^
+### INSTALLATION
 
-  Ubuntu:
-  ```
-  curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-  sudo apt-get install -y nodejs
-  sudo apt-get install node-gyp
-  ```
+#### Command Line (mac/linux) :
 
-3. **Install platform specific dependencies of hsd/support libraries**
+```npm install``` in this directory or 
 
-  LINUX: ```sudo apt install libunbound-dev``` 
+#### Windows: 
 
-  MAC: ```brew install libunbound-dev```
+double-click ```install.windows.bat``` (and make sure to run this as administrator). Windows: This will probably take 10 minutes to build.
 
-  WINDOWS: HSD Install guide is below. You should use docker to run an hsd node.
+Note: When you run the intaller we will install a copy of hsd in this directory. It will probably fail/complain about unbound support which is fine. We won't be running HSD anyway, only including a couple of files for block header creation from actual HSD block data. You can ignore warnings/failures in this install.
 
-4. **```npm install``` in this directory.** (windows will throw some nasty looking warnings but still complete)
+Windows folks: If you didnt double click ```install.windows.bat``` youll need to run the following commands in the repo root (make sure to use admin privileges to the terminal) :
+```npm install --global --production windows-build-tools && npm config set msvs_version 2017 --global``` followed by your ```npm install```
 
-5. (optional for solo miners running HSD nodes) **You will need to install an [hstratum](https://github.com/HandshakeAlliance/hstratum)-enabled [HSD](https://github.com/handshake-org/hsd)**
+Windows may also need to add the following two items added to the ```Path``` environment variable:
 ```
-git clone https://github.com/handshake-org/hsd.git
-cd hsd
-npm install --production
-npm install github:HandshakeAlliance/hstratum
+C:\Program Files\nodejs\node_modules\npm\bin
+C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin
 ```
 
-6. (optional for solo miners running HSD nodes) **Running HSD::**
+Once you have finished the installer, you can start the miner! Make sure to [start a fullnode](#runFullnode) if you intend on solo mining to 127.0.0.1 to your own hsd fullnode. 
+#### Note:
+We do not auto-start the fullnode for you here like we do in HandyMiner-GUI. However we made it easy here and its a [double click to start it](#runFullnode). If you just want to play simnet to check hashrates, feel free to use the simnet node at: ```ip: 3.14.224.108 port: 3008```
 
+### THE POINT
 
+Non-terminal users: simply double click ```(windows) dashboard.windows.bat``` or ```(mac) dashboard.mac.command``` or ```(linux) dashboard.sh``` files.
+
+Note The first time you launch will run you thru the [miner configurator](#configurator).
+
+Launch the miner in terminal like:
 ```
-./bin/hsd --network=testnet --cors=true --api-key=earthlab --http-host=0.0.0.0 --coinbase-address=ts1q59rxjegn030vwe0z3jjgx76j6ql44tpfwkjv5g --listen --plugins hstratum --stratum-host 0.0.0.0 --stratum-port 3008 --stratum-public-host 0.0.0.0 --stratum-public-port 3008 --stratum-max-inbound 1000 --stratum-difficulty 8 --stratum-dynamic --stratum-password=earthlab
-```
+cd (into the repo base)
+npm start (runs the CLI miner)
 
-^^ Notice the --coinbase-address field: that's your wallet you'd like to mine to. You really only need to change that to run HSD. Also try adding --daemon later
+Most terminals:
+npm run dashboard //runs the CLI dashboard+miner
+OR
+./dashboard.sh //same
 
-Note the 'stratum-password' (change to whatever you like). We use this in the miner configuration next
+Note: many windows terminals dont do text coloring or dashboards right with npm run commands.. So if it's an issue (and you didnt double click) you can launch the proper dashboard like:
 
-
-## MINER CONFIGURATION
-
-First we should setup our configuration. Note: The default config will list gpus out of the box if you run ```npm start```
-**config.json format**
-```
-{
-  "gpus":"1", //pass in "-1" here to list your available GPU's/the # you want, prob "1" for single cards/laptops
-  "gpu_platform":"0", //probably 0 for mac or laptops, my windows 10 rig was "1"
-  "gpu_mfg":"AMD", //AMD||NVIDIA
-  "intensity":10, //intensity 1 - 10. Try 11 for >=8GB cards for an extra boost
-  "host":"127.0.0.1", //hsd stratum host
-  "port":"3008", //hsd stratum port
-  "stratum_user":"myRigName", your rig name in the stratum
-  "stratum_pass":"theStratumPassword", //stratum password you started hsd with
-  "wallet":"ts1q59rxjegn030vwe0z3jjgx76j6ql44tpfwkjv5g", //optional, for pool stratum mining only: your wallet
-  "muteWinningFanfare":true, //optional, set to true to turn off the awesome block submission fanfare song.
-  "mode":"solo",//required MINING MODE: solo || pool. Use pool to mine to a pool
-  "poolDifficulty":10 //pool difficulty. Try to shoot for 20-30 second share times. If you put this too low it will block you.
-}
+node --max-old-space-size=8196 ./miner/dashboard.js
 ```
 
-The GPU ID's are a comma separated string of GPU ID integers, aka ```"1,2,3"```. 
-In addition, we can passin multiple GPU's from multiple platforms and vendors!!1!
-So if platform #1 on my rig has my AMD cards on GPU 0 and GPU 1, while my nvidia cards show up on platform #0 as GPU 1 and GPU 2.
-So in my configuration I'd just add a comma separated value for all platform and manufacturer fields. If they are all the same you can just use 1 as well...
-```
-{
-  "gpus":"0,1,1,2"
-  "gpu_platform":"1,1,0,0"
-  "gpu_mfg":"amd","amd","nvidia","nvidia",
-  "intensity":"10,5,11,11",
-  ...
+Note: Mac users need to enter their password to use the dashboard utility. We're not doing anything weird, MacOS requires it to ask the system for temperature/fan information.
 
-}
-```
-Likely they are the same ones you mine with on your rig config elsewhere. If you don't know, pass in "-1" into "gpus" and the log will list the possible GPU's for a single platform listed in 'gpu_platform'. GPU Platform is probably "0" on most laptops/single card machines. On my Windows rig it's "1". Passing in "-1" in the gpus field with a single platform in 'gpu_platform' will answer for you.
+#### Mine blocks!
 
+(Ctrl+C to stop the miner)
 
+<a id="minerConfigurator"></a>
+### MINER CONFIGURATOR
 
-## THE POINT
+The first time you run the miner, you will run through a configurator which will write a config to ./config.json. Should you want to reconfigure in the future, you can just run ```node configure.js``` in this directory. Alternately delete config.json and (re)start the miner.
 
-You can now launch the miner with:
-```
-cd (into this directory)
-npm start
-```
-Mine blocks!
+Required Items to have ready for configuration:
+
+0. host or IP address of the pool or solo node you mine to (127.0.0.1 for your local fullnode)
+
+Optional configuration items (just leave blank and hit enter if you dont know) :
+1. pool or solo node port (probably 3008)
+2. the stratum password (optional)
+3. the wallet you want to mine to (pool only)
 
 
+#### Mining FAQ:
 
+1. I started the dashboard and it says connection to 127.0.0.1 is timed out and trying again in 20s. 
+This means your fullnode is not running. Please [launch a fullnode](#runFullnode)  or mine to a pool IP address.
 
-### Windows HSD installation::
+2. I dont see all my GPUs listed in the configurator
+Use your arrow keys, the list is scrollable. Hit space to multi-select and Enter to goto the next step.
 
-HSD doesnt install right on windows at the moment. Not to worry, we'll use docker for now..
+<a id="runFullnode"></a>
+### Running an HSD Fullnode for solo mining
 
-0. Download docker
-1. You can use the Dockerfile in windows_utils/Dockerfile to build a suitable machine with hsd/hstratum configured. The command to build from that Dockerfile is
-```
-cd ./windows_utils
-docker build -t someImageName .
-```
-2. To run that docker image:
-```
-docker run -p 13037:13037 -p 13038:13038 -p 3008:3008 --expose 3008 --name someContainerName -td someImageName
-```
-3. Once you have built the image you can now get into the bash terminal and run HSD!
-```
-docker ps -a //to check all machines to see if ours is running. if you set --name, then you can use the name here like docker start myName
-If it's not running, just run:
+There are some handy docker utilities in the folder ```./fullnode_utils``` which you can double click on mac/windows/linux to create, launch, stop or nuke a stratum-enabled fullnode on your local machine that you can mine to. Any utilities speicific to the POWNG-simnet tests are noted in the command names. 
 
-docker start 26137f087795
-//or if you set --name in 2:
-docker start someContainerName
-```
-where 26137f087795 is the ID of the machine i want to start. After it's started you can now "ssh" in with docker like (windows first) :
-```
-winpty docker exec -it 26137f087795 bash
-//OR just 
-docker exec -it 26137f087795 bash
-//also you can replace 26137f087795 with someContainerName you set above
-```
-winpty is some plugin for some 64 bit terminals like git bash, minty, cygwin, etc.
+<a id="dockerReminders"></a>
+#### Docker Fullnode Reminders:
+1. Make sure you installed docker. PSA: you dont need to login to docker either, dont let them fool you [mac, hunt for the dmg link](https://docs.docker.com/docker-for-mac/release-notes/) [windows, hunt for the exe link](https://docs.docker.com/docker-for-windows/release-notes/) ). Even after you install it: you dont need to login in order to run this goodness.
+2. Make sure that you added your wallet address you'd like paid at to ```run.mac.command OR run.windows.bat OR run.sh (for production)``` or ```run.powng.mac.command OR run.powng.windows.bat OR run.powng.sh (for simnet powng testing rn)``` in the end of the command that looks like: ```"./run.sh hs1qu2zqenh8jdxvaqz7nwun4r3k32klmuf6ss2y9s simnet"```
 
-Once you get into the Docker machine, hsd (preinstalled with hstratum) is found in ```/usr/hsd``` and can be run with the commands starting at #2 in the Mac/*n*x section above.
+#### Docker Fullnode FAQs:
 
-After HSD is running on your Docker container you can now fire up the miner! Back in Windows land, cd into this directory and you can run:
+1. I get an error:: ``` Error response from daemon: driver failed programming external connectivity on endpoint earthlabHSD (...) Error starting userland proxy: mkdir /port/tcp:0.0.0.0:14038:tcp:172.17.0.2:14038: input/output error Error: failed to start containers: earthlabHSD ``` 
+Right click the docker icon in your taskbar and 'restart docker'. It might take a couple minutes to fully restart.
 
-```
-//first time we run::
-npm install --global --production windows-build-tools
-npm install
-//after that, to start all we need is:
-npm start
-```
+2. Can I access the hsd docker fullnode? 
+Yes. Port 15937 will be open for RPC calls to the node per usual, else ssh into the container's hsd directory with::
+```docker exec -it earthlabHSD bash```
+Windows:
+```winpty docker exec -it earthlabHSD bash```
 
-### Possible Windows Gotchas
-If a terminal like Git Bash is throwing errors/problems, try using MinGW-64::
-Go [download mingw-64 8.1.0 with gcc aka "MinGW-W64-install.exe"](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-posix/dwarf/) and have it either installed in 
-```"C:\Program Files\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0"``` 
-OR feel free to change the line in miner/HandyMiner.js to reflect where your mingw64 binaries are located like::
-```
-envVars.PATH = "C:\\Program\ Files\\mingw-w64\\x86_64-8.1.0-posix-seh-rt_v6-rev0\\bin"+';'+process.env.PATH;
+3. I'd like to import my wallet into this fullnode, How do I set my fullnode's API password and/or stratum password to something more meaningful? 
 
-just change the directory part that's "C:\\Program\ Files\\mingw-w64\\x86_64-8.1.0-posix-seh-rt_v6-rev0\\bin" which should only be some verion difference (aka: "x86_64-8.1.0-posix-seh-rt_v6-rev0") if any. Future reference: This will get bundled in/automated..
+Edit the file you run the fullnode with, ```run.mac.command``` or ```run.windows.bat``` for example, and add the 3rd and 4th parameters into run.sh like:::
+```docker start earthlabHSD && docker exec -i earthlabHSD sh -c "./run.sh hs1qu2zqenh8jdxvaqz7nwun4r3k32klmuf6ss2y9s main my_hsd_api_password_here my_stratum_password_here"``` 
+and pay attention that the passwords are inside that double quote ^^
 
-```
+4. If you don't want to run a Dockerized fullnode, you can feel free to check the docs in ```simnet_powng_fullnode_native_readme.md``` to see how to launch your own native fullnode that is on simnet and pow-ng.

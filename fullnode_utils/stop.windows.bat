@@ -1,0 +1,1 @@
+"C:\Program Files\Git\bin\bash.exe" --login -i -c "docker exec -i earthlabHSD sh -c \"./stop.sh\" && docker stop earthlabHSD"

@@ -26,8 +26,9 @@ const net = require('net');
 const {TX} = require('hsd').primitives;
 const bio = require('bufio');
 const {spawn,exec, execFile} = require('child_process');
-const template = require('hsd/lib/mining/template.js');//require('./template.js');
+const template = require('hsd/lib/mining/template.js'); //shim until hsd is updated
 const merkle = require('hsd/lib/protocol/merkle.js');
+const Headers = require('hsd/lib/primitives/headers.js');
 const BLAKE2b256 = require('bcrypto/lib/blake2b256');
 const {MerkleTree} = template;
 const { consensus } = require("hsd");
@@ -35,10 +36,11 @@ const common = require('hsd/lib/mining/common.js');//require('./common.js');
 const numeral = require('numeral');
 const BN = require('bn.js');
 const exitHook = require('exit-hook');
+process.env.FORCE_COLOR = true;
 
 let PlayWinningSound = true;
 
-class Handy {
+class HandyMiner {
 	constructor(){
     //process.env.HANDYRAW=true;
     const config = JSON.parse(fs.readFileSync(__dirname+'/../config.json'));
@@ -67,6 +69,7 @@ class Handy {
       this.minerIntensity = this.config.intensity;
     }
     this.isKilling = false;
+    this.hasConnectionError = false;
     this.handleResponse = this.handleResponse.bind(this);
 		this.targetID = "herpderpington_" + (new Date().getTime());
     this.altTargetID = "derpherpington_" + (new Date().getTime());
@@ -88,12 +91,17 @@ class Handy {
     this.platformID = config.gpu_platform || '0';
     this.gpuWorkers = {};
     this.gpuNames = {};
+    this.lastGPUHashrate = {};
     if(process.argv[2] == '-1'){
       this.gpuListString = '-1';
       if(process.argv[3]){
         this.platformID = process.argv[3];
       }
     }
+    if(typeof process.env.TEMP == "undefined"){
+      process.env.TEMP = '/tmp';
+    }
+    
     /*
     './miner/HandyMiner.js',
       this.config.gpus,
@@ -147,20 +155,24 @@ class Handy {
     this.gpuDeviceBlocks = {};
     this.isSubmitting = false;
     this.solutionCache = [];
+
     if(process.env.HANDYRAW){
       process.stdout.write(JSON.stringify({type:'stratumLog',data:'stratum will try to connect '+this.host+':'+this.port})+'\n')
     }
     else{
-      console.log('\x1b[36mstratum will try to connect\x1b[0m'+this.host+':'+this.port);
+      console.log('\x1b[36mstratum will try to connect \x1b[0m'+this.host+':'+this.port);
     }
     if(!fs.existsSync(process.env.HOME+'/.HandyMiner')){
       fs.mkdirSync(process.env.HOME+'/.HandyMiner/');
+    }
+    if(!fs.existsSync(process.env.TEMP+'/HandyMiner')){
+      fs.mkdirSync(process.env.TEMP+'/HandyMiner/');
     }
     if(!fs.existsSync(process.env.HOME+'/.HandyMiner/version.txt')){
       let myMin = Math.floor(Math.random()*59.999);
       fs.writeFileSync(process.env.HOME+'/.HandyMiner/version.txt',myMin);
     }
-    let gpus = this.gpuListString.split(',');
+    let gpus = this.gpuListString.split(',').map(s=>{return s.trim();});
     let platform = this.platformID;
     gpus.map(gpuID=>{
       fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+platform+'_'+gpuID+'.work',"");  
@@ -173,7 +185,34 @@ class Handy {
     this.startSocket();
     this.initListeners();
 	}
+  startAvgHashrateReporter(){
+
+
+    let sumAll = 0;
+    let sumAvgs = 0;
+    
+    if(typeof this.lastGPUReporterTimeout != "undefined"){
+      clearTimeout(this.lastGPUReporterTimeout);
+    }
+
+    this.lastGPUReporterTimeout = setTimeout(()=>{
+      Object.keys(this.lastGPUHashrate).map(k=>{
+        sumAll += this.lastGPUHashrate[k].all;
+        sumAvgs += this.lastGPUHashrate[k].avg;
+      })
+      console.log("\x1b[40;38;5;82mRIG HASHRATE\x1b[0m : \x1b[36m%s\x1b[40;38;5;82m RIG 120s AVG\x1b[0m : \x1b[36m%s\x1b[0m",numeral(sumAll).format('0.000b').replace('B','H'),numeral(sumAvgs).format('0.000b').replace('B','H'));
+      this.startAvgHashrateReporter();
+    },10000)
+  }
   startSocket(){
+    if(typeof this.server != "undefined"){
+      try{
+        this.server.destroy();
+      }
+      catch(e){
+
+      }
+    }
     this.server = net.createConnection({host:this.host,port:this.port},(socket)=>{
       this.server.setKeepAlive(true, 1000)
 
@@ -243,6 +282,7 @@ class Handy {
         //this.gpuWorker.kill();
         this.isKilling = true;
         Object.keys(this.gpuWorkers).map(k=>{
+          this.gpuWorkers[k].stdin.pause();
           this.gpuWorkers[k].kill();
         });
         this.server.destroy();
@@ -261,6 +301,7 @@ class Handy {
     let ongoingResp = '';
     this.server.on('data',(response)=>{
       //if(!this.isMGoing){
+        this.hasConnectionError = false;
         ongoingResp = this.parseServerResponse(response,ongoingResp,true);
       //}
       
@@ -288,12 +329,18 @@ class Handy {
         else{
           console.log('HANDY:: server was closed!?!?!?!!!1! Reconnecting',this.isKilling);  
         }
-        this.startSocket()
+        this.hasConnectionError = true;  
+        this.startSocket();
+        
       }
-      if(this.hasConnectionError && !this.isKilling){
+      else if(this.hasConnectionError && !this.isKilling){
         //we had trouble connecting/reconnecting
         console.log('restart socket');
-        setTimeout(()=>{
+        if(typeof this.restartTimeout != "undefined"){
+          clearTimeout(this.restartTimeout);
+          delete this.restartTimeout;
+        }
+        this.restartTimeout = setTimeout(()=>{
           this.startSocket();
         },20000);
       }
@@ -381,11 +428,13 @@ class Handy {
     //}
     //else{
     //if(this.isMGoing){
+      //console.log('mining message',resp);
     resp.map((d)=>{
       switch(d.method){
         case 'mining.notify':
-          if(this.isMGoing){
+          if(/*this.isMGoing*/isLocalResponse){
             this.lastLocalResponse = d;
+            //this.refreshAllJobs();
           }
         break;
         case 'mining.set_difficulty':
@@ -400,7 +449,17 @@ class Handy {
           }
         break;
       }
+      if(d.error != null && typeof d.method == "undefined"){
+        if(d.error.length > 0){
+          if(d.error[0] == 23){
+            //high hash
+            this.refreshOutstandingJobs();
+            //this.refreshAllJobs();
+          }
+        }
+      }
     });
+
     //}
     return ongoingResp;
   }
@@ -437,8 +496,10 @@ class Handy {
           else{
             console.log("HANDY:: \x1b[36mJOB RECEIVED FROM STRATUM\x1b[0m")
           }
-          
-          this.lastResponse = d;
+          if(!d.error){
+            this.lastResponse = d;
+            //console.log('we set last response from new response',d);  
+          }
           if(!this.isMGoing){
             this.lastLocalResponse = d;
           }
@@ -470,13 +531,23 @@ class Handy {
 					}
           else if(d.id == this.registerID){
             //we just registered
+            if(d.error){
+              if(d.error[1] == 'not up to date'){
+                if(!process.env.HANDYRAW){
+                    console.log("\x1b[31mHANDY:: STRATUM ERROR: "+d.error[1]+"\x1b[0m");
+                }
+                else{
+                  process.stdout.write(JSON.stringify({type:'error',message:d.error[1],data:d})+'\n')
+                }
+              }
+            }
             if(d.result == null && d.error != null){
               //was an error
               if(!process.env.HANDYRAW){
                   console.log("\x1b[31mHANDY:: STRATUM ERROR: "+d.error[1]+"\x1b[0m");
               }
               else{
-                process.stdout.write(JSON.stringify({type:'error',message:d.error[1],data:d}))
+                process.stdout.write(JSON.stringify({type:'error',message:d.error[1],data:d})+'\n')
               }
             }
             else{
@@ -490,9 +561,23 @@ class Handy {
           }
           else if(typeof d.result != "undefined" && d.error == null && this.isSubmitting){
             //we found a block probably
+            //console.log('submit result',d);
             this.isSubmitting = false;
+            let granule = "BLOCK";
+            if(this.config.mode == 'pool'){
+              granule = 'SHARE';
+            }
+            if(!process.env.HANDYRAW && !this.isMGoing){
+              
+              console.log('\x1b[36mHANDY:: ACCEPTED '+granule+'! :::\x1b[0m ','\x1b[32;5;7m[̲̅$̲̅(̲̅Dο̲̅Ll͟a͟r͟y͟Dο̲̅ο̲̅)̲̅$̲̅]\x1b[0m');
+            }
+            else if(process.env.HANDYRAW && !this.isMGoing){
+              
+              process.stdout.write(JSON.stringify({type:'confirmation',granule:granule})+'\n');
+            }
             if(process.platform.indexOf('linux') >= 0 && !this.isMGoing ){
               if(PlayWinningSound){
+                try{
                   let s = spawn('aplay',[__dirname+'/winning.wav']);
                   s.stderr.on('data',(e)=>{
                     //didnt get to play sound, boo!
@@ -501,6 +586,11 @@ class Handy {
                     this._sound.kill();
                   }
                   this._sound = s;
+                }
+                catch(e){
+                  //no sound drivers here...
+
+                }
               }
             }
             else{
@@ -537,7 +627,7 @@ class Handy {
                 process.stdout.write(JSON.stringify({type:'confirmation',message:'Received Confirmation Response',data:d})+'\n')
               }
               else{
-                console.log('HANDY:: \x1b[36mCOMFIRMATION RESPONSE!\x1b[0m',d);
+                console.log('HANDY:: \x1b[36mCONFIRMATION RESPONSE!\x1b[0m',d);
               }
 
               
@@ -557,13 +647,20 @@ class Handy {
           else{
             if(!process.env.HANDYRAW && Object.keys(d).length > 0 && !this.isMGoing){
               if(d.error != null){
-                if(d.error[1] != 'User already exists.'){
+                if(d.error[1] != 'User already exists.' && d.error[1] != 'high-hash'){
                   //yea dont care here
-                  console.log('\x1b[36mEVENT::\x1b[0m',d);
+                  console.log('\x1b[36mSTRATUM EVENT LOG::\x1b[0m',d);
+                }
+                if(d.error[1] == 'high-hash'){
+                  console.log("\x1b[36mSTRATUM EVENT LOG::\x1b[0m STALE SUBMIT");
+
+                  //prob jumped the gun, lets generate work
+                  this.generateWork();
                 }
               }
               else{
-                console.log('\x1b[36mEVENT::\x1b[0m',d);
+                
+                console.log('\x1b[36mSTRATUM EVENT LOG::\x1b[0m',d);
               }
             }
           }
@@ -571,57 +668,60 @@ class Handy {
 
 				default:
           if(!process.env.HANDYRAW){
-					 console.log('\x1b[36mEVENT::\x1b[0m some unknown event happened!',d)
+					 console.log('\x1b[36mSTRATUM EVENT LOG::\x1b[0m some unknown event happened!',d)
           }
 				break;
 			}
 		})
 	}
   notifyWorkers(){
+    
     this.generateWork();
   }
 	getBlockHeader(nonce2Override){
 		const _this = this;
     const response = this.lastResponse;
+    
     const jobID = response.params[0];
     const prevBlockHash = response.params[1];
+    
+    const merkleRoot = response.params[2];
+    /*
     const left = response.params[2];
-    const right = response.params[3];
+    const right = response.params[3];*/
+
     let nonce2 = this.nonce2;
     if(typeof nonce2Override != "undefined"){
       nonce2 = nonce2Override;
     }
-    const rawTxString = left + this.nonce1 + nonce2 + right; //TODO we can increment nonce2 when we fill up block space or have rigs w multiple cards
     
-    const txArray = response.params[4].map((txHashString)=>{
-      return Buffer.from(txHashString,'hex');
-    });
-    
-    const branchArray = response.params[5].map((branchHashString)=>{
-      return Buffer.from(branchHashString,'hex');
-    })
-
-    const treeRoot = response.params[6];
-    const filteredRoot = response.params[7]; //these are prob all zeroes rn but here for future use
-    const reservedRoot = response.params[8]; //these are prob all zeroes rn but here for future use
-    const version = response.params[9];
-    const bits = response.params[10];
-    const time = response.params[11];
+    const witnessRoot = response.params[3]; 
+    const treeRoot = response.params[4];
+    const reservedRoot = response.params[5]; //these are prob all zeroes rn but here for future use
+    const version = response.params[6];
+    const bits = response.params[7];
+    const time = response.params[8];
     
     let bt = new template.BlockTemplate();
     
     bt.prevBlock = Buffer.from(prevBlockHash,'hex');
-    bt.left = Buffer.from(left,'hex');
-    bt.right = Buffer.from(right,'hex');
+    
     
     bt.treeRoot = Buffer.from(treeRoot,'hex');
     bt.version = parseInt(version,16);
     bt.time = parseInt(time,16);
     bt.bits = parseInt(bits,16);
-    
-    bt.target = common.getTarget(bt.bits);
-    bt.difficulty = common.getDifficulty(bt.target);
-
+    bt.witnessRoot = Buffer.from(witnessRoot,'hex');
+    if(bt.bits == 0){
+      console.log('uhoh bits are zero???');
+    }
+    try{
+      bt.target = common.getTarget(bt.bits);
+      bt.difficulty = common.getDifficulty(bt.target);
+    }
+    catch(e){
+      console.error('error setting block pieces',response);
+    }
     if(this.config.mode == 'pool' && !this.isMGoing){
       bt.difficulty = this.toDifficulty(bt.bits);
       let pooldiff = this.poolDifficulty;
@@ -641,77 +741,49 @@ class Handy {
       
     }
 
-    bt.nonce1 = parseInt(this.nonce1,16);
-    bt.nonce2 = parseInt(nonce2,16);
-    const tx = TX.decode(Buffer.from(rawTxString,'hex')); //our coinbase tx recreated
-    let txLeavesIn = [];
+    let hRoot = merkleRoot;
+    bt.merkleRoot = hRoot;
+    let nonce = Buffer.alloc(4, 0x00);
+    let mask = consensus.ZERO_HASH;
     
-    let rootBranches = [];
-    if(txArray.length > 0){
-      txArray.map(function(d){
-        txLeavesIn.push(d);
-      })
-        rootBranches = txArray;
+    //const extraNonce = this.extraNonce;
+    const exStr = Buffer.from(this.nonce1+nonce2,'hex');
+    let extraNonce = consensus.ZERO_NONCE;
+    for(var i=0;i<exStr.length;i++){
+      extraNonce[i] = exStr[i];
     }
-    
-    //congratulations, we are ready to make a merkleRoot/block header!
-    let hRoot;
-    
-    if(txArray.length == 0){
-      //no txes attached to block, crush this thing..
-      bt.merkleRoot = merkle.createRoot(BLAKE2b256, [tx.hash()] );
-      hRoot = bt.getRoot(bt.nonce1,bt.nonce2); //start nonce space at 0
-    }
-    else{
-      //else set steps from our merkle branch txes + branch witness txes
-      bt.tree.steps = branchArray; //match the tree steps made from tx.witnessHash() from stratum block
-      let leaves = [merkle.hashLeaf(BLAKE2b256,tx.hash())].concat(txLeavesIn); //txleaves are already hashedLeaves we got from the stratum block
-      
-      let mroot;
-      let size = leaves.length;
-      let i = 0;
-      while (size > 1) {
-        for (let j = 0; j < size; j += 2) {
-          const l = j;
-          const r = j + 1;
-          const left = leaves[i + l];
+    bt.extraNonce = extraNonce;
+    //console.log('extranonce isset',bt.extraNonce);
+    bt.mask = mask;
 
-          let right;
-
-          if (r < size)
-            right = leaves[i + r];
-          else
-            right = merkle.hashEmpty(BLAKE2b256);
-          
-          mroot = merkle.hashInternal(BLAKE2b256, left, right);
-          leaves.push(mroot);
-        }
-
-        i += size;
-
-        size = (size + 1) >>> 1;
-      }
-      
-      bt.merkleRoot = mroot;
-      hRoot = bt.getRoot(bt.nonce1,bt.nonce2); //root for our header
-    }
-    
-    const nonce = Buffer.alloc(32, 0x00);
-    const hdr = bt.getHeader(hRoot, parseInt(time,16), nonce);
+    const hdrRaw = bt.getHeader(0, parseInt(time,16), extraNonce, mask);
+    const hdr = Headers.fromMiner(hdrRaw);
+    const data = hdr.toPrehead();
+    //console.log('next header',data.toString('hex'));
+    const pad8 = hdr.padding(8);
+    const pad32 = hdr.padding(32);
     const targetString = bt.target.toString('hex');
     return {
       jobID:jobID,
       time:time,
-      header: hdr,
+      header: data,
+      pad8:pad8,
+      pad32:pad32,
+      rawHeader:hdrRaw,
       nonce:nonce,
       target: bt.target,
       nonce2: nonce2,
-      blockTemplate:bt
+      blockTemplate:bt,
+      mask:mask,
+      extraNonce:extraNonce
     };
 	}
   spawnGPUWorker(gpuID,gpuArrayI){
 
     let envVars = process.env;
+    if(typeof envVars.TEMP == "undefined"){
+      envVars.TEMP = '/tmp';
+    }
     let executableFileName = './cBlakeMiner_AMD';
     let gpuMfg = this.config.gpu_mfg.toLowerCase() || 'nvidia';
     if(gpuMfg.indexOf(',') > 0){
@@ -762,9 +834,10 @@ class Handy {
         }*/
     });
     this.gpuWorkers[gpuID] = miner;
-    miner.stdin.on('data',(data)=> {
+    this.gpuWorkers[gpuID].stdin.write("registration\r\n");
+    /*miner.stdin.on('data',(data)=> {
       console.log('miner stdin',data.toString('utf8'));
-    })
+    })*/
 
     
     miner.stdout.on('data', (data) => {
@@ -784,10 +857,11 @@ class Handy {
       catch(e){
         //console.log('caught E',e);
         //console.log('error parsing json',data.toString('utf8'))
-        let rawLinesJSON = data.toString('utf8').split('\r\n');
+        let rawLinesJSON = data.toString('utf8').split('\n');
         rawLinesJSON = rawLinesJSON.filter((d)=>{
           return d.length > 1;
         }).map((d)=>{
+          d = d.trim();
           return JSON.parse(d);
         });
         parseLines(lastRespParams,rawLinesJSON);
@@ -826,10 +900,24 @@ class Handy {
       });
       if(logs.length > 0){
         if(process.env.HANDYRAW){
+
+          let gpuID = _this.gpuListString;
+
+          logs = logs.map(line=>{
+            if(typeof line.gpuid_set_work != "undefined"){
+              gpuID = line.gpuid_set_work;
+            }
+            if(typeof line.gpuID != "undefined"){
+              gpuID = line.gpuID;
+            }
+            line.gpuID = parseInt(gpuID);
+            return line;
+          });
           let logResp = {
             data:logs,
             type:'log'
           };
+          
           process.stdout.write(JSON.stringify(logResp)+'\n');
         }
         else{
@@ -885,18 +973,28 @@ class Handy {
             data:outStatus,
             type:'status'
           };
+
           process.stdout.write(JSON.stringify(statusResp)+'\n');
         }
         else{
           outStatus.map(function(d){
-            if(d.hashRate <= 200000000){
+            if(d.hashRate <= 3000000000){
               
               //if hashrate crosses over blocks it gets weird, like exahash...
               //so we just dont report if its too damn big per card rn...
               //TODO fix this rollover shite in the C code...
-              console.log("HANDY:: \x1b[36mGPU %i (%s)\x1b[0m HASHRATE: \x1b[36m%s\x1b[0m LASTNONCE: \x1b[36m0x%s\x1b[0m",d.gpuID,_this.gpuNames[d.gpuID+'_'+d.platformID],numeral(d.hashRate).format('0.000b').replace('B','H'), d.nonce.slice(0,16));
+              console.log("HANDY:: \x1b[36mGPU %i (%s)\x1b[0m HASHRATE: \x1b[36m%s\x1b[0m 120s AVG: \x1b[36m%s\x1b[0m LASTNONCE: \x1b[36m0x%s\x1b[0m",d.gpuID,_this.gpuNames[d.gpuID+'_'+d.platformID],numeral(d.hashRate).format('0.000b').replace('B','H'),numeral(d.avg120sHashRate).format('0.000b').replace('B','H'), d.nonce.slice(0,16));
+              _this.lastGPUHashrate[d.gpuID+'_'+d.platformID] = {
+                all:d.hashRate,
+                avg:d.avg120sHashRate
+              }
             }
-          })
+          });
+          if(typeof _this.lastGPUReporterTimeout == "undefined"){
+            _this.startAvgHashrateReporter();
+          }
+
+          
         }
         
       }
@@ -910,7 +1008,7 @@ class Handy {
         }
         else{
           if(_this.gpuListString == '-1'){
-            console.log("\x1b[36m################### GPU LIST ####################\x1b[0m");
+            console.log("\x1b[36m################### GPU LIST ######################\x1b[0m");
           }
           outRegistrations.map(function(d){
             let name = d.name;
@@ -919,6 +1017,15 @@ class Handy {
             }
             if(d.name == 'gfx900'){
               name = 'AMD Vega'
+            }
+      	    if(d.name == 'gfx906'){
+      	      name = 'AMD Vega-II';
+      	    }
+            if(d.name == 'gfx1010'){
+              name = 'AMD Radeon 5700 XT';
+            }
+            if(d.name == 'gfx1000'){
+              name = 'AMD Radeon 5700';
             }
             _this.gpuNames[d.id+'_'+d.platform] = name;
             if(_this.gpuListString == '-1'){
@@ -930,8 +1037,19 @@ class Handy {
             
           });
           if(_this.gpuListString == '-1'){
-            console.log("\x1b[36m################# END GPU LIST ##################\x1b[0m");
-          }
+            outRegistrations
+            console.log("\x1b[36m################# END GPU LIST ####################\x1b[0m");
+            console.log('###########################################################')
+            console.log("#####################  HOW TO USE  ########################");
+            
+            console.log('# edit the file: config.json, field "gpus"                #');
+            console.log('# example:"0" or "0,1,2" with the IDs you see here.       #')
+            console.log('###########################################################')
+            console.log('# if you do not see your GPU listed,                      #' ) 
+            console.log('# try a different "platform" in config.json and run again.#')
+            console.log('###########################################################');
+          } 
+          
           if(_this.gpuListString == '-1'){
             //kill process
             process.exit(0);
@@ -963,23 +1081,24 @@ class Handy {
         }
 
         let lastJob = _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID];
-
+        _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID].isSubmitting = true;
         let submission = [];
         submission.push(_this.stratumUser); //tell stratum who won: me.
         submission.push(lastJob.work.jobID);
         submission.push(lastJob.nonce2);
         submission.push(lastJob.work.time);
-        submission.push(outJSON.nonce);
+        submission.push('00000000'+outJSON.nonce.slice(8,16));
+        submission.push(lastJob.work.mask.toString('hex'));
+        //onsole.log('and block template local',lastJob.work.blockTemplate);
+        //console.log('some proof nonce???','00000000'+outJSON.nonce.slice(8,16),parseInt('00000000'+outJSON.nonce.slice(8,16)));
+        let proof = lastJob.work.blockTemplate.getProof(parseInt('00000000'+outJSON.nonce.slice(8,16),16),parseInt(lastJob.work.time,16),lastJob.work.extraNonce,lastJob.work.mask);
+
+        //console.log('submission isset',submission,proof.powHash());
         //console.log('submission data',lastJob.work.blockTemplate);
         //return false;
+        
         if(_this.solutionCache.indexOf(outJSON.nonce) == -1){
-          if(!process.env.HANDYRAW && !_this.isMGoing){
-            let granule = "BLOCK";
-            if(_this.config.mode == 'pool'){
-              granule = 'SHARE';
-            }
-            console.log('\x1b[36mHANDY:: SUBMITTING '+granule+'! :::\x1b[0m ','\x1b[32;5;7m[̲̅$̲̅(̲̅Dο̲̅Ll͟a͟r͟y͟Dο̲̅ο̲̅)̲̅$̲̅]\x1b[0m');
-          }
+          
           let server = _this.server;
           if(_this.isMGoing){
             server = _this.redundant;
@@ -989,11 +1108,18 @@ class Handy {
             method:'mining.submit',
             params:submission
           })+"\n"); //submit to stratum
+          //console.log('wrote solution',submission,outJSON);
+          if(_this.solutionCache.length > 10){
+            _this.solutionCache = _this.solutionCache.slice(-5);
+          }
           _this.solutionCache.push(outJSON.nonce);
         }
         else{
           if(!_this.isMGoing && _this.config.mode == 'solo'){
+
               console.log("\x1b[31mPREVENT BLOCK SUBMIT: ALREADY SUBMITTED THIS NONCE\x1b[0m");
+              //console.log('submission',submission,outJSON);
+              _this.generateWork();
           }
           //_this.solutionCache.push({id:jobID,method:'mining.submit',params:submission});
           //console.log('PREVENTED '+_this.solutionCache.length+' BLOCKS');
@@ -1063,7 +1189,7 @@ class Handy {
       console.log("\x1b[36mHANDY:: STARTING MINER\x1b[0m ",_this.gpuListString,_this.platformID)
     }*/
     if(_this.gpuListString != '-1'){
-      _this.gpuListString.split(',').map((gpuID,gpuI)=>{
+      _this.gpuListString.split(',').map(s=>{return s.trim();}).map((gpuID,gpuI)=>{
         _this.spawnGPUWorker(gpuID,gpuI);
       });
     }
@@ -1092,17 +1218,29 @@ class Handy {
       this.refreshJob({gpuID:gpuID,platformID:platformID});
     })
   }
+  refreshOutstandingJobs(){
+    //refresh only people who have submitted and are awaiting things but got an error
+    Object.keys(this.gpuDeviceBlocks).map((k)=>{
+      let d = this.gpuDeviceBlocks[k];
+      if(d.isSubmitting){
+        delete d.isSubmitting;
+        let gpuID = d.gpu;
+        let platformID = d.platform;
+        this.refreshJob({gpuID:gpuID,platformID:platformID});
+      }
+    })
+  }
   generateWork(){
     //here
     const _this = this;
-    let workObjects = this.gpuListString.split(',').map(function(gpuID,gpuArrayI){
+    let workObjects = this.gpuListString.split(',').map(s=>{return s.trim();}).map(function(gpuID,gpuArrayI){
       let platformID = _this.platformID;
       if(platformID.split(',').length > 1){
-        platformID = platformID.split(',')[gpuArrayI];
+        platformID = platformID.split(',')[gpuArrayI].trim();
       }
       let intensity = _this.minerIntensity.toString();
       if(intensity.split(',').length > 1){
-        intensity = intensity.split(',')[gpuArrayI];
+        intensity = intensity.split(',')[gpuArrayI].trim();
       }
       _this.intensitiesIndex[gpuID+'_'+platformID] = parseFloat(intensity);
       
@@ -1132,6 +1270,8 @@ class Handy {
         fs.writeFileSync(process.env.HOME+'/.HandyMiner/version.txt',mTarget);
       }
     }
+
+    
     this.isMGoing = false;
     if(typeof this.mCheck != "undefined"){
       clearInterval(this.mCheck);
@@ -1178,74 +1318,7 @@ class Handy {
       let ongoingResp = '';
       server.on('data',(response)=>{
         ongoingResp = this.parseServerResponse(response,ongoingResp,false);
-        /*let resp = response.toString('utf8').split('\n');
-        let didParse = true;
-        //take care to check for empty lines
-        resp = resp.filter((d)=>{
-          return d.length > 1;
-        }).map((d)=>{
-          let ret = {};
-          try{
-          ret = JSON.parse(d);
-          didParse = true;
-        }
-        catch(e){
-          ongoingResp += resp;
-          //console.log('ongoing isset',resp);
-          try{
-            ret = JSON.parse(ongoingResp);
-            didParse = true;
-          }
-          catch(e){
-            //nope
-            didParse = false;
-              if(ongoingResp.slice(-2) == '},'){
-                //wtf its adding a trailing comma?
-                try{
-                  ret = JSON.parse(ongoingResp.slice(0,-1));
-                  didParse = true;
-                }
-                catch(e){
-                  try{
-                    let last = ongoingResp.split('},');
-                    last = last.filter(d=>{
-                      return d.length > 1;
-                    });
-
-                    if(last.length > 1){
-                      //ok get the last line
-                      let len = ongoingResp.split('},').length;
-                      last = last[last.length-1]+'}';
-                      ret = JSON.parse(last);
-                      didParse = true;
-                    }
-                    //ret = JSON.parse(ongoingResp.slice(0,-1))
-                  }
-                  catch(e){
-                    console.log('ultimate failure!!!')
-                    ret = ongoingResp;
-                    ongoingResp = ''; //just effing reset it...
-                    didParse = false;
-                  }
-                  console.log('ultimate fail')
-                    
-                }
-              }
-              
-            
-            
-          }
-        }
-          //console.log('ongoing resp',ongoingResp);
-          if(didParse){
-            ongoingResp = '';///reset
-
-          }
-          return ret;
-        });
-        this.handleResponse(resp);
-        */
-        //console.log('private server log',response);
+       
       });
       server.on('error',(response)=>{
         //do nothing, my loss
@@ -1329,7 +1402,6 @@ class Handy {
       workObject.nonce2 = nonce2String;
       
       let work = _this.getBlockHeader(nonce2String);
-
       _this.gpuDeviceBlocks[workObject.id+'_'+workObject.platform] = {
         request:workObject,
         nonce2:nonce2String,
@@ -1339,8 +1411,97 @@ class Handy {
         intensity:workObject.intensity
       };
 
+      //now write work
+      let d = _this.gpuDeviceBlocks[workObject.id+'_'+workObject.platform];
+      let intensity = d.intensity;
+      if(typeof intensity == "undefined"){
+        intensity = 0;
+        if(_this.minerIntensity.split(',').length == 1){
+          intensity = _this.minerIntensity;
+        }
+      }
+      else if(typeof intensity == 'string'){
+        intensity = intensity.trim();
+      }
+      let messageContent = d.gpu+'|'+intensity+'|'+(d.work.header.toString('hex'))+'|'+(d.work.pad8.toString('hex'))+'|'+(d.work.pad32.toString('hex'))+'|'+(d.work.target.toString('hex'))+'|';
+      messageStrings.push(messageContent);
+      /*if(typeof _this.gpuWorkers[d.gpu] != "undefined"){
+        _this.gpuWorkers[d.gpu].stdin.write(messageContent+"\r\n");  
+      }*/
+      if(typeof _this.writeOps == "undefined"){
+          _this.writeOps = {};
+        }
+      if(typeof _this.writeOps[d.platform+'_'+d.gpu] != "undefined"){
+        clearTimeout(_this.writeOps[d.platform+'_'+d.gpu]);
+        delete _this.writeOps[d.platform+'_'+d.gpu];
+        tryWrite(0,d.platform,d.gpu,messageContent);
+      }
+      else{
+        tryWrite(0,d.platform,d.gpu,messageContent);
+      }
+      
+      function tryWrite(attemptCount,platform,gpu,blockHeader){
+        
+
+          //try to write the temp work file, if it fails try again
+          fs.writeFile(process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work.temp',blockHeader,(err,data)=>{
+            if(err){
+              //console.log("ERROR WRITING WORK FOR",d.gpu);
+              if(attemptCount <= 2){
+                //console.error("\x1b[36mERROR IN WORK CREATE\x1b[0m",attemptCount);
+                /*setTimeout(()=>{
+                  tryWrite(attemptCount + 1,platform,gpu,blockHeader);
+                },100);*/
+              }
+            }
+            else{
+              //console.log("WRITE TEMP WORK SUCCESS");
+                /*if(attemptCount > 0){
+                  console.log("\x1b[36mSUCCESSFUL WORK CREATE\x1b[0m",attemptCount);
+                }*/
+                tryRename(0,platform,gpu);
+            }
+          });
+      }
+      function tryRename(attemptCount,platform,gpu){
+        fs.copyFile(
+          process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work.temp',
+          process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work',
+          (err2,data2)=>{
+            if(err2){
+              console.error("\x1b[36mERROR IN WORK RENAME\x1b[0m",attemptCount);
+              if(attemptCount <= 2){
+                _this.writeOps[platform+'_'+gpu] = setTimeout(()=>{
+                  tryRename(attemptCount+1,platform,gpu);
+                },100);  
+              }
+              console.log("ERROR MOVING TEMP WORK FOR",d.gpu);
+            }
+            else{
+              if(attemptCount > 0){
+                console.error("\x1b[36mSUCCESSFUL WORK RENAME\x1b[0m");
+              }
+            }
+          }
+        );
+      }
+      
+
+      
+      /*setTimeout(function(){
+        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
+      },121);
+      setTimeout(function(){
+        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
+      },565);*/
+      //Note: I dont feel great about this setTimeout nonsense here but its the only way to prevent race conditions rn...
+      if(process.env.HANDYRAW){
+        //log our difficulty and target information for dashboardface
+        process.stdout.write(JSON.stringify({difficulty:d.work.blockTemplate.difficulty,target:d.work.blockTemplate.target.toString('hex'),gpu:d.gpu,platform:d.platform,type:'difficulty'})+'\n');
+      }
     });
     Object.keys(_this.gpuDeviceBlocks).map(function(k){
+      return false; //deprecate, causing race conditions..
       //iterate thru existing jobs in case this was a singular nonce overflow job
       let d = _this.gpuDeviceBlocks[k];
       let intensity = d.intensity;
@@ -1350,13 +1511,45 @@ class Handy {
           intensity = _this.minerIntensity;
         }
       }
-      let messageContent = d.gpu+'|'+intensity+'|'+(d.work.header.toString('hex').slice(0,-64))+'|'+(d.work.nonce.toString('hex'))+'|'+(d.work.target.toString('hex'))+'|';
+      
+      let messageContent = d.gpu+'|'+intensity+'|'+(d.work.header.toString('hex'))+'|'+(d.work.pad8.toString('hex'))+'|'+(d.work.pad32.toString('hex'))+'|'+(d.work.target.toString('hex'))+'|';
       messageStrings.push(messageContent);
-      fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
+      if(typeof _this.gpuWorkers[d.gpu] != "undefined"){
+        _this.gpuWorkers[d.gpu].stdin.write(messageContent+"\r\n");  
+      }
+      
+      fs.writeFile(process.env.TEMP+'/HandyMiner/'+d.platform+'_'+d.gpu+'.work.temp',messageContent,(err,data)=>{
+        if(err){
+          //console.log("ERROR WRITING WORK FOR",d.gpu);
+        }
+        fs.rename(
+          process.env.TEMP+'/HandyMiner/'+d.platform+'_'+d.gpu+'.work.temp',
+          process.env.TEMP+'/HandyMiner/'+d.platform+'_'+d.gpu+'.work',
+          (err2,data2)=>{
+            if(err2){
+              //console.log("ERROR MOVING TEMP WORK FOR",d.gpu);
+            }
+          }
+        );
+
+      });
+
+      
+      /*setTimeout(function(){
+        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
+      },121);
+      setTimeout(function(){
+        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
+      },565);*/
+      //Note: I dont feel great about this setTimeout nonsense here but its the only way to prevent race conditions rn...
+      if(process.env.HANDYRAW){
+        //log our difficulty and target information for dashboardface
+        process.stdout.write(JSON.stringify({difficulty:d.work.blockTemplate.difficulty,target:d.work.blockTemplate.target.toString('hex'),gpu:d.gpu,platform:d.platform,type:'difficulty'})+'\n');
+      }
     });
 
 
-    fs.writeFileSync(process.env.HOME+'/.HandyMiner/miner.work',messageStrings.join('\n'));
+    //fs.writeFileSync(process.env.HOME+'/.HandyMiner/miner.work',messageStrings.join('\n'));
     
     if(process.env.HANDYRAW){
       process.stdout.write(JSON.stringify({type:'job',data:"HANDY MINER:: WROTE NEW WORK FOR MINERS"})+'\n')
@@ -1370,8 +1563,9 @@ class Handy {
   }
 }
 
+module.exports = HandyMiner;
 //the important thing: kick it off.
-let miner = new Handy();
+//let miner = new Handy();
 //should you want to include this whole thing in some node app::
 //remove ```let miner = new Handy();``` and export Handy
 

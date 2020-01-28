@@ -1,0 +1,1 @@
+docker exec -i earthlabHSD sh -c "./stop.sh" && docker stop earthlabHSD

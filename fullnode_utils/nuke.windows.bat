@@ -1,0 +1,1 @@
+"C:\Program Files\Git\bin\bash.exe" --login -i -c "docker stop earthlabHSD && docker rm earthlabHSD && docker image rm earthlab"

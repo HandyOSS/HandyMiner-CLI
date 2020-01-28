@@ -1,0 +1,1 @@
+"C:\Program Files\Git\bin\bash.exe" --login -i -c "(sleep 10 && curl x:earthlab@127.0.0.1:15937 -XPOST --data '{\"method\":\"addnode\",\"params\":[\"aorsxa4ylaacshipyjkfbvzfkh3jhh4yowtoqdt64nzemqtiw2whk@3.14.224.108:15038\",\"add\"]}') & docker start earthlabHSD && docker exec -i earthlabHSD sh -c \"./run.sh hs1qu2zqenh8jdxvaqz7nwun4r3k32klmuf6ss2y9s simnet\""
