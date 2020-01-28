@@ -23,9 +23,6 @@ EPIC Thanks to the Handshake Alliance for being a solid team
 
 EPIC Thanks to Steven McKie for being my mentor/believing in me
 
-### BEFORE YOU GET STARTED WITH POW-NG
-
-This current iteration is specific to the Next-Generation PoW work in Handshake. It will only be available on simnet as of writing this readme (9/27/2019) until we see the next testnet launch, at which time there will be updates. All the resources included in this particular distribution will be scoped to simnet network and handshake-org/hsd#pow-ng hsd fullnode. Using this on testnet 4 will not work for you. If you intent to mine to an existing fullnode you'll need a specific hsd branch, please see simnet_powng_fullnode_native_readme.md (or use the provided docker pow-ng fullnode)
 
 ### PREREQUISITES
 
