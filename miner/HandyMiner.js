@@ -1469,17 +1469,17 @@ class HandyMiner {
           process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work',
           (err2,data2)=>{
             if(err2){
-              console.error("\x1b[36mERROR IN WORK RENAME\x1b[0m",attemptCount);
+              //console.error("\x1b[36mERROR IN WORK RENAME\x1b[0m",attemptCount);
               if(attemptCount <= 2){
                 _this.writeOps[platform+'_'+gpu] = setTimeout(()=>{
                   tryRename(attemptCount+1,platform,gpu);
                 },100);  
               }
-              console.log("ERROR MOVING TEMP WORK FOR",d.gpu);
+              //console.log("ERROR MOVING TEMP WORK FOR",d.gpu);
             }
             else{
               if(attemptCount > 0){
-                console.error("\x1b[36mSUCCESSFUL WORK RENAME\x1b[0m");
+                //console.error("\x1b[36mSUCCESSFUL WORK RENAME\x1b[0m");
               }
             }
           }
