@@ -83,6 +83,9 @@ class CLIDashboard{
 		  	this.screen.destroy();
 		  	
 		  	this.rainbow();
+		  	if(typeof this.powerTimer != "undefined"){
+		  		clearTimeout(this.powerTimer);
+		  	}
 		  	if(typeof this.minerProcess != "undefined"){
 		  		this.minerProcess.stdin.pause();
 		  		this.minerProcess.kill();
@@ -413,7 +416,19 @@ class CLIDashboard{
 										let gpu = this.gpus[key];
 										let strName = this.linuxRocmInfo[cardInt];
 
-										let tempGPU = card["Temperature (Sensor #1)"].replace('C','').trim();
+										let tempGPU;
+										try{
+											if(typeof card["Temperature (Sensor #1)"] == "undefined"){
+												tempGPU = card["Temperature (edge)"].replace('C','').trim();
+											}
+											else{
+												tempGPU = card["Temperature (Sensor #1)"].replace('C','').trim();
+											}
+										}
+										catch(e){
+											tempGPU = '0';
+										}
+
 										let fanPerc = card["Fan Level"].split('(')[1].replace('%)','').trim();
 										let powerW = card["Average Graphics Package Power"].replace('W','').trim();
 										let memClock = card["mclk Clock Level"].split('(')[1].replace('MHz)','').trim();
