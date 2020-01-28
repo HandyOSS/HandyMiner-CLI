@@ -882,8 +882,9 @@ class CLIDashboard{
 					}
 					else{
 						
-						if(json.type == 'confirmation' && typeof json.granule != "undefined" && !didConfirm){
+						if(json.type == 'confirmation' && typeof json.granule != "undefined" /*&& !didConfirm*/){
 							//didConfirm just in case there is some duplicate message in the same batch of lines. If you're crushing blocks like that why does it matter we show blinky this many times anyway..
+							//removing didconfirm logic because dashboard GUI is missing blocks sometimes...... :facepalm:
 							didConfirm = true;
 							this.statsData.shares++;
 							this.updateStats(moment(),'last');

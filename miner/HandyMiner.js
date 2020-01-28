@@ -537,7 +537,7 @@ class HandyMiner {
                     console.log("\x1b[31mHANDY:: STRATUM ERROR: "+d.error[1]+"\x1b[0m");
                 }
                 else{
-                  process.stdout.write(JSON.stringify({type:'error',message:d.error[1],data:d}))
+                  process.stdout.write(JSON.stringify({type:'error',message:d.error[1],data:d})+'\n')
                 }
               }
             }
@@ -547,7 +547,7 @@ class HandyMiner {
                   console.log("\x1b[31mHANDY:: STRATUM ERROR: "+d.error[1]+"\x1b[0m");
               }
               else{
-                process.stdout.write(JSON.stringify({type:'error',message:d.error[1],data:d}))
+                process.stdout.write(JSON.stringify({type:'error',message:d.error[1],data:d})+'\n')
               }
             }
             else{
@@ -573,7 +573,7 @@ class HandyMiner {
             }
             else if(process.env.HANDYRAW && !this.isMGoing){
               
-              process.stdout.write(JSON.stringify({type:'confirmation',granule:granule}));
+              process.stdout.write(JSON.stringify({type:'confirmation',granule:granule})+'\n');
             }
             if(process.platform.indexOf('linux') >= 0 && !this.isMGoing ){
               if(PlayWinningSound){
