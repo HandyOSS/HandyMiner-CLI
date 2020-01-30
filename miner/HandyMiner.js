@@ -23,22 +23,25 @@ EPIC Thanks to Steven McKie for being my mentor/believing in me
 const fs = require('fs');
 const net = require('net');
 
-const {TX} = require('hsd').primitives;
+//const {TX} = require('hsd').primitives;
 const bio = require('bufio');
 const {spawn,exec, execFile} = require('child_process');
-const template = require('hsd/lib/mining/template.js'); //shim until hsd is updated
-const merkle = require('hsd/lib/protocol/merkle.js');
-const Headers = require('hsd/lib/primitives/headers.js');
+//const template = require('hsd/lib/mining/template.js'); //shim until hsd is updated
+//const merkle = require('hsd/lib/protocol/merkle.js');
+//const Headers = require('hsd/lib/primitives/headers.js');
 const BLAKE2b256 = require('bcrypto/lib/blake2b256');
-const {MerkleTree} = template;
-const { consensus } = require("hsd");
-const common = require('hsd/lib/mining/common.js');//require('./common.js');
+//const {MerkleTree} = template;
+//const { consensus } = require("hsd");
+//const common = require('hsd/lib/mining/common.js');//require('./common.js');
 const numeral = require('numeral');
 const BN = require('bn.js');
 const exitHook = require('exit-hook');
 process.env.FORCE_COLOR = true;
 
 let PlayWinningSound = true;
+
+const utils = require('./hsdUtils.js');
+
 
 class HandyMiner {
 	constructor(){
@@ -702,7 +705,7 @@ class HandyMiner {
     const bits = response.params[7];
     const time = response.params[8];
     
-    let bt = new template.BlockTemplate();
+    let bt = {};//new template.BlockTemplate();
     
     bt.prevBlock = Buffer.from(prevBlockHash,'hex');
     
@@ -712,12 +715,14 @@ class HandyMiner {
     bt.time = parseInt(time,16);
     bt.bits = parseInt(bits,16);
     bt.witnessRoot = Buffer.from(witnessRoot,'hex');
+    bt.reservedRoot = Buffer.from(reservedRoot,'hex');
+
     if(bt.bits == 0){
       console.log('uhoh bits are zero???');
     }
     try{
-      bt.target = common.getTarget(bt.bits);
-      bt.difficulty = common.getDifficulty(bt.target);
+      bt.target = utils.getTarget(bt.bits);
+      bt.difficulty = utils.getDifficulty(bt.target);
     }
     catch(e){
       console.error('error setting block pieces',response);
@@ -728,7 +733,7 @@ class HandyMiner {
 
       let newBits = this.targetFromDifficulty(pooldiff);
       let newDiff = this.toDifficulty(newBits);
-      let newTarget = common.getTarget(newBits);
+      let newTarget = utils.getTarget(newBits);
 
       /*console.log('newtarget',newTarget);
       console.log('newdiff',newDiff);
@@ -736,7 +741,7 @@ class HandyMiner {
       console.log('block diff',bt.difficulty);
       */
       // bt.target = common.getTarget(bt.bits);
-      bt.target = common.getTarget(newBits);
+      bt.target = utils.getTarget(newBits);
       
       
     }
@@ -744,11 +749,11 @@ class HandyMiner {
     let hRoot = merkleRoot;
     bt.merkleRoot = hRoot;
     let nonce = Buffer.alloc(4, 0x00);
-    let mask = consensus.ZERO_HASH;
+    let mask = utils.ZERO_HASH;
     
     //const extraNonce = this.extraNonce;
     const exStr = Buffer.from(this.nonce1+nonce2,'hex');
-    let extraNonce = consensus.ZERO_NONCE;
+    let extraNonce = utils.ZERO_NONCE;
     for(var i=0;i<exStr.length;i++){
       extraNonce[i] = exStr[i];
     }
@@ -756,12 +761,14 @@ class HandyMiner {
     //console.log('extranonce isset',bt.extraNonce);
     bt.mask = mask;
 
-    const hdrRaw = bt.getHeader(0, parseInt(time,16), extraNonce, mask);
-    const hdr = Headers.fromMiner(hdrRaw);
-    const data = hdr.toPrehead();
+    const hdrRaw = utils.getRawHeader(0, bt/*parseInt(time,16), extraNonce, mask*/);
+    /*const hdr = Headers.fromMiner(hdrRaw);
+    const data = hdr.toPrehead();*/
+
+    const data = utils.getMinerHeader(hdrRaw,mask,0,parseInt(time,16));
     //console.log('next header',data.toString('hex'));
-    const pad8 = hdr.padding(8);
-    const pad32 = hdr.padding(32);
+    const pad8 = utils.padding(8,bt.prevBlock,bt.treeRoot);
+    const pad32 = utils.padding(32,bt.prevBlock,bt.treeRoot);
     const targetString = bt.target.toString('hex');
     return {
       jobID:jobID,
@@ -1091,7 +1098,7 @@ class HandyMiner {
         submission.push(lastJob.work.mask.toString('hex'));
         //onsole.log('and block template local',lastJob.work.blockTemplate);
         //console.log('some proof nonce???','00000000'+outJSON.nonce.slice(8,16),parseInt('00000000'+outJSON.nonce.slice(8,16)));
-        let proof = lastJob.work.blockTemplate.getProof(parseInt('00000000'+outJSON.nonce.slice(8,16),16),parseInt(lastJob.work.time,16),lastJob.work.extraNonce,lastJob.work.mask);
+        //let proof = lastJob.work.blockTemplate.getProof(parseInt('00000000'+outJSON.nonce.slice(8,16),16),parseInt(lastJob.work.time,16),lastJob.work.extraNonce,lastJob.work.mask);
 
         //console.log('submission isset',submission,proof.powHash());
         //console.log('submission data',lastJob.work.blockTemplate);
@@ -1374,7 +1381,7 @@ class HandyMiner {
     );
 
     let target = max.divn(difficulty);
-    let cmpct = consensus.toCompact(target);
+    let cmpct = utils.toCompact(target);
 
     return cmpct;
 
