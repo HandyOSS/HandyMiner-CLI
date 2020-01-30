@@ -12,7 +12,6 @@
   "author": "Alex Smith (alex.smith@earthlab.tech)",
   "license": "ISC",
   "dependencies": {
-    "bcrypto": "^3.0.2",
     "bheep": "^0.1.4",
     "blessed": "^0.1.81",
     "blessed-contrib": "^4.8.16",

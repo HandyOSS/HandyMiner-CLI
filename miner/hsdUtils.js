@@ -3,20 +3,23 @@
 const BN = require('bn.js');
 const assert = require('bsert');
 const bio = require('bufio');
-const BLAKE2b = require('bcrypto/lib/blake2b');
 
+const BLAKE2b = require('./crypto/blake2b.js');
+
+/*hsd/lib/protocol/consensus.js*/
 exports.ZERO_HASH = Buffer.alloc(32, 0x00);
 exports.NONCE_SIZE = 24;
 exports.ZERO_NONCE = Buffer.alloc(exports.NONCE_SIZE, 0x00);
 exports.ZERO_HASH = Buffer.alloc(32, 0x00);
 
+/*hsd/lib/mining/common.js*/
 const DIFF = 0x00000000ffff0000000000000000000000000000000000000000000000000000;
 const B192 = 0x1000000000000000000000000000000000000000000000000;
 const B128 = 0x100000000000000000000000000000000;
 const B64 = 0x10000000000000000;
 const B0 = 0x1;
 
-
+/*hsd/lib/protocol/consensus.js*/
 exports.toCompact = function toCompact(num) {
   if (num.isZero())
     return 0;
@@ -45,6 +48,8 @@ exports.toCompact = function toCompact(num) {
 
   return compact;
 };
+
+/*hsd/lib/protocol/consensus.js*/
 exports.fromCompact = function fromCompact(compact) {
   if (compact === 0)
     return new BN(0);
@@ -69,6 +74,7 @@ exports.fromCompact = function fromCompact(compact) {
   return num;
 };
 
+/*hsd/lib/mining/common.js*/
 exports.getTarget = function getTarget(bits) {
   const target = exports.fromCompact(bits);
 
@@ -83,6 +89,7 @@ exports.getTarget = function getTarget(bits) {
 
   return target.toArrayLike(Buffer, 'be', 32);
 };
+/*hsd/lib/mining/common.js*/
 function double256(target) {
   let n = 0;
   let hi, lo;
@@ -107,6 +114,7 @@ function double256(target) {
 
   return n;
 };
+/*hsd/lib/mining/common.js*/
 exports.getDifficulty = function getDifficulty(target) {
   const d = DIFF;
   const n = double256(target);
@@ -117,10 +125,11 @@ exports.getDifficulty = function getDifficulty(target) {
   return Math.floor(d / n);
 };
 
-
+/*hsd/lib/primitives/abstractblock.js*/
 function maskHash(prevBlock,mask){
   return BLAKE2b.multi(prevBlock, mask);
 }
+/*hsd/lib/primitives/abstractblock.js*/
 exports.padding = function padding(size,prevBlock,treeRoot) {
   assert((size >>> 0) === size);
 
@@ -131,7 +140,7 @@ exports.padding = function padding(size,prevBlock,treeRoot) {
 
   return pad;
 }
-
+/*hsd/lib/primitives/abstractblock.js::toMiner*/
 exports.getRawHeader = function toMiner(nonce,bt/*time,prevBlock,treeRoot,maskHash,extraNonce,reservedRoot,witnessRoot,merkleRoot,version,bits*/){
   const bw = bio.write(128 + 128);
 
@@ -157,7 +166,7 @@ exports.getRawHeader = function toMiner(nonce,bt/*time,prevBlock,treeRoot,maskHa
   return bw.render();
 }
 
-
+/*hsd/lib/primitives/abstractblock.js*/
 function fromMiner(data) {
   const br = bio.read(data);
   let bt = {}
@@ -188,6 +197,8 @@ function fromMiner(data) {
 
   return bt;
 }
+
+/*hsd/lib/primitives/abstractblock.js*/
 function toSubhead(bt) {
   const bw = bio.write(128);
 
@@ -207,14 +218,19 @@ function toSubhead(bt) {
 
   return bw.render();
 }
+
+/*hsd/lib/primitives/abstractblock.js*/
 function subHash(bt) {
   return BLAKE2b.digest(toSubhead(bt));
 }
+/*hsd/lib/primitives/abstractblock.js*/
 function commitHash(bt,mask) {
   // Note for mining pools: do not send
   // the mask itself to individual miners.
   return BLAKE2b.multi(subHash(bt), maskHash(bt.prevBlock,mask));
 }
+
+/*hsd/lib/primitives/abstractblock.js*/
 function toPrehead(bt,mask,nonce,time) {
     const bw = bio.write(128);
 
@@ -230,6 +246,7 @@ function toPrehead(bt,mask,nonce,time) {
 
     return bw.render();
   }
+
 exports.getMinerHeader = function getMinerHeader(hdrRaw,mask,nonce,time){
   let bt = fromMiner(hdrRaw);
   //console.log('fromminer',bt);
