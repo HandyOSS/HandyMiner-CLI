@@ -126,7 +126,7 @@ exports.getDifficulty = function getDifficulty(target) {
 };
 
 /*hsd/lib/primitives/abstractblock.js*/
-function maskHash(prevBlock,mask){
+exports.maskHash = function maskHash(prevBlock,mask){
   return BLAKE2b.multi(prevBlock, mask);
 }
 /*hsd/lib/primitives/abstractblock.js*/
@@ -141,7 +141,7 @@ exports.padding = function padding(size,prevBlock,treeRoot) {
   return pad;
 }
 /*hsd/lib/primitives/abstractblock.js::toMiner*/
-exports.getRawHeader = function toMiner(nonce,bt/*time,prevBlock,treeRoot,maskHash,extraNonce,reservedRoot,witnessRoot,merkleRoot,version,bits*/){
+exports.getRawHeader = function toMiner(nonce,bt){
   const bw = bio.write(128 + 128);
 
   // Preheader.
@@ -152,7 +152,7 @@ exports.getRawHeader = function toMiner(nonce,bt/*time,prevBlock,treeRoot,maskHa
   bw.writeHash(bt.treeRoot);
 
   // Replace commitment hash with mask hash.
-  bw.writeHash(maskHash(bt.prevBlock,bt.mask));
+  bw.writeHash(bt.maskHash/*maskHash(bt.prevBlock,bt.mask)*/);
 
   // Subheader.
   //console.log('bt',bt);
@@ -205,7 +205,7 @@ function toSubhead(bt) {
   // The subheader contains miner-mutable
   // and less essential data (that is,
   // less essential for SPV resolvers).
-  //console.log('extrea???',bt.extraNonce);
+  
   bw.writeBytes(bt.extraNonce);
   bw.writeHash(bt.reservedRoot);
   bw.writeHash(bt.witnessRoot);
@@ -224,14 +224,14 @@ function subHash(bt) {
   return BLAKE2b.digest(toSubhead(bt));
 }
 /*hsd/lib/primitives/abstractblock.js*/
-function commitHash(bt,mask) {
+function commitHash(bt,maskHash) {
   // Note for mining pools: do not send
   // the mask itself to individual miners.
-  return BLAKE2b.multi(subHash(bt), maskHash(bt.prevBlock,mask));
+  return BLAKE2b.multi(subHash(bt), maskHash/*maskHash(bt.prevBlock,mask)*/);
 }
 
 /*hsd/lib/primitives/abstractblock.js*/
-function toPrehead(bt,mask,nonce,time) {
+function toPrehead(bt,maskHash,nonce,time) {
     const bw = bio.write(128);
 
     bw.writeU32(nonce);
@@ -239,7 +239,7 @@ function toPrehead(bt,mask,nonce,time) {
     bw.writeBytes(exports.padding(20,bt.prevBlock,bt.treeRoot));
     bw.writeHash(bt.prevBlock);
     bw.writeHash(bt.treeRoot);
-    bw.writeHash(commitHash(bt,mask));
+    bw.writeHash(commitHash(bt,maskHash));
 
     // Exactly one blake2b block (128 bytes).
     assert(bw.offset === BLAKE2b.blockSize);
@@ -247,10 +247,10 @@ function toPrehead(bt,mask,nonce,time) {
     return bw.render();
   }
 
-exports.getMinerHeader = function getMinerHeader(hdrRaw,mask,nonce,time){
+exports.getMinerHeader = function getMinerHeader(hdrRaw,nonce,time,maskHash){
   let bt = fromMiner(hdrRaw);
   //console.log('fromminer',bt);
-  let prehead = toPrehead(bt,mask,nonce,time);
+  let prehead = toPrehead(bt,maskHash,nonce,time);
   return prehead;
 }
 

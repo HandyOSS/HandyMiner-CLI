@@ -716,6 +716,10 @@ class HandyMiner {
     bt.bits = parseInt(bits,16);
     bt.witnessRoot = Buffer.from(witnessRoot,'hex');
     bt.reservedRoot = Buffer.from(reservedRoot,'hex');
+    let mask = utils.ZERO_HASH;
+    bt.mask = mask;
+
+    bt.maskHash = utils.maskHash(bt.prevBlock,mask);
 
     if(bt.bits == 0){
       console.log('uhoh bits are zero???');
@@ -742,14 +746,18 @@ class HandyMiner {
       */
       // bt.target = common.getTarget(bt.bits);
       bt.target = utils.getTarget(newBits);
-      
+
+      //we override maskHash from the stratum if isset
+      if(typeof response.params[9] != "undefined"){
+        bt.maskHash = Buffer.from(response.params[9],'hex');
+      }
       
     }
 
     let hRoot = merkleRoot;
     bt.merkleRoot = hRoot;
     let nonce = Buffer.alloc(4, 0x00);
-    let mask = utils.ZERO_HASH;
+    
     
     //const extraNonce = this.extraNonce;
     const exStr = Buffer.from(this.nonce1+nonce2,'hex');
@@ -759,13 +767,10 @@ class HandyMiner {
     }
     bt.extraNonce = extraNonce;
     //console.log('extranonce isset',bt.extraNonce);
-    bt.mask = mask;
 
-    const hdrRaw = utils.getRawHeader(0, bt/*parseInt(time,16), extraNonce, mask*/);
-    /*const hdr = Headers.fromMiner(hdrRaw);
-    const data = hdr.toPrehead();*/
 
-    const data = utils.getMinerHeader(hdrRaw,mask,0,parseInt(time,16));
+    const hdrRaw = utils.getRawHeader(0, bt);
+    const data = utils.getMinerHeader(hdrRaw,0,parseInt(time,16),bt.maskHash);
     //console.log('next header',data.toString('hex'));
     const pad8 = utils.padding(8,bt.prevBlock,bt.treeRoot);
     const pad32 = utils.padding(32,bt.prevBlock,bt.treeRoot);
