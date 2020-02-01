@@ -338,7 +338,6 @@ class HandyMiner {
       }
       else if(this.hasConnectionError && !this.isKilling){
         //we had trouble connecting/reconnecting
-        console.log('restart socket');
         if(typeof this.restartTimeout != "undefined"){
           clearTimeout(this.restartTimeout);
           delete this.restartTimeout;
@@ -404,12 +403,10 @@ class HandyMiner {
                   //ret = JSON.parse(ongoingResp.slice(0,-1))
                 }
                 catch(e){
-                  console.log('ultimate failure!!!')
                   ret = ongoingResp;
                   ongoingResp = ''; //just effing reset it...
                   didParse = false;
                 }
-                console.log('ultimate fail')
                   
               }
             }
@@ -521,8 +518,8 @@ class HandyMiner {
 					//TODO impl pool difficulty vs solo diff that we're using now
 				break;
 				case undefined:
-          //console.log('result',d);
-					if(d.id == this.targetID && !this.isMGoing){
+          
+          if(d.id == this.targetID && !this.isMGoing){
 						//in the case we pass back my id i know it's a message for me
             if(process.env.HANDYRAW){
               process.stdout.write(JSON.stringify({type:'stratumLog',data:'Successfully Registered With Stratum'})+'\n')
@@ -689,10 +686,7 @@ class HandyMiner {
     const prevBlockHash = response.params[1];
     
     const merkleRoot = response.params[2];
-    /*
-    const left = response.params[2];
-    const right = response.params[3];*/
-
+    
     let nonce2 = this.nonce2;
     if(typeof nonce2Override != "undefined"){
       nonce2 = nonce2Override;
@@ -721,15 +715,13 @@ class HandyMiner {
 
     bt.maskHash = utils.maskHash(bt.prevBlock,mask);
 
-    if(bt.bits == 0){
-      console.log('uhoh bits are zero???');
-    }
+    
     try{
       bt.target = utils.getTarget(bt.bits);
       bt.difficulty = utils.getDifficulty(bt.target);
     }
     catch(e){
-      console.error('error setting block pieces',response);
+      //console.error('error setting block pieces',response);
     }
     if(this.config.mode == 'pool' && !this.isMGoing){
       bt.difficulty = this.toDifficulty(bt.bits);
@@ -739,11 +731,6 @@ class HandyMiner {
       let newDiff = this.toDifficulty(newBits);
       let newTarget = utils.getTarget(newBits);
 
-      /*console.log('newtarget',newTarget);
-      console.log('newdiff',newDiff);
-      console.log('pooldiff',pooldiff);
-      console.log('block diff',bt.difficulty);
-      */
       // bt.target = common.getTarget(bt.bits);
       bt.target = utils.getTarget(newBits);
 
@@ -758,20 +745,16 @@ class HandyMiner {
     bt.merkleRoot = hRoot;
     let nonce = Buffer.alloc(4, 0x00);
     
-    
-    //const extraNonce = this.extraNonce;
     const exStr = Buffer.from(this.nonce1+nonce2,'hex');
     let extraNonce = utils.ZERO_NONCE;
     for(var i=0;i<exStr.length;i++){
       extraNonce[i] = exStr[i];
     }
     bt.extraNonce = extraNonce;
-    //console.log('extranonce isset',bt.extraNonce);
-
-
+    
     const hdrRaw = utils.getRawHeader(0, bt);
     const data = utils.getMinerHeader(hdrRaw,0,parseInt(time,16),bt.maskHash);
-    //console.log('next header',data.toString('hex'));
+    
     const pad8 = utils.padding(8,bt.prevBlock,bt.treeRoot);
     const pad32 = utils.padding(32,bt.prevBlock,bt.treeRoot);
     const targetString = bt.target.toString('hex');
@@ -827,11 +810,7 @@ class HandyMiner {
     }
 
     //spawn the miner child process 
-    /*
-      block.header.toString('hex').slice(0,-64),
-      block.nonce.toString('hex'),
-      block.target.toString('hex')
-    */
+    
     let miningMode = this.config.mode == 'pool' ? 1 : 0; // 0 = solo, 1 = pool
     let miner = spawn(executableFileName,[
         gpuID, //gpu's, -1 to list them
@@ -841,16 +820,9 @@ class HandyMiner {
       ],{
       cwd: './core',//'C:/Users/camde/dev/sha3-opencl/add_numbers',
       env:envVars
-      /*env: {
-            PATH: "C:\\Program\ Files\\mingw-w64\\x86_64-8.1.0-posix-seh-rt_v6-rev0\\bin"+';'+process.env.PATH,
-        }*/
     });
     this.gpuWorkers[gpuID] = miner;
     this.gpuWorkers[gpuID].stdin.write("registration\r\n");
-    /*miner.stdin.on('data',(data)=> {
-      console.log('miner stdin',data.toString('utf8'));
-    })*/
-
     
     miner.stdout.on('data', (data) => {
       //console.log('miner stdout',data.toString('utf8'));
@@ -861,7 +833,6 @@ class HandyMiner {
       else{
         lastRespParams = this.lastResponse.params[0];
       }
-      //console.log('miner stdout received',data.toString('utf8'));
       try{
         let json = JSON.parse(data.toString('utf8'));
         parseLines(lastRespParams,[json]);
@@ -947,13 +918,6 @@ class HandyMiner {
             console.log('\x1b[36mHANDY::\x1b[0m THIS WILL TAKE A MINUTE ',amdMessage);
           }
         }
-        /*
-        //these are mega annoying anyway
-        else{
-          console.log('\x1b[36mHANDY LOGS: \x1b[0m',logs);
-        }*/
-        
-
       }
 
       let deviceRegistrations = rawLinesJSON.filter((d)=>{
@@ -1101,13 +1065,6 @@ class HandyMiner {
         submission.push(lastJob.work.time);
         submission.push('00000000'+outJSON.nonce.slice(8,16));
         submission.push(lastJob.work.mask.toString('hex'));
-        //onsole.log('and block template local',lastJob.work.blockTemplate);
-        //console.log('some proof nonce???','00000000'+outJSON.nonce.slice(8,16),parseInt('00000000'+outJSON.nonce.slice(8,16)));
-        //let proof = lastJob.work.blockTemplate.getProof(parseInt('00000000'+outJSON.nonce.slice(8,16),16),parseInt(lastJob.work.time,16),lastJob.work.extraNonce,lastJob.work.mask);
-
-        //console.log('submission isset',submission,proof.powHash());
-        //console.log('submission data',lastJob.work.blockTemplate);
-        //return false;
         
         if(_this.solutionCache.indexOf(outJSON.nonce) == -1){
           
@@ -1120,7 +1077,7 @@ class HandyMiner {
             method:'mining.submit',
             params:submission
           })+"\n"); //submit to stratum
-          //console.log('wrote solution',submission,outJSON);
+          
           if(_this.solutionCache.length > 10){
             _this.solutionCache = _this.solutionCache.slice(-5);
           }
@@ -1128,14 +1085,12 @@ class HandyMiner {
         }
         else{
           if(!_this.isMGoing && _this.config.mode == 'solo'){
-
-              console.log("\x1b[31mPREVENT BLOCK SUBMIT: ALREADY SUBMITTED THIS NONCE\x1b[0m");
-              //console.log('submission',submission,outJSON);
+              if(!process.env.HANDYRAW){
+                //havent seen this in forever, deprecate soon
+                console.log("\x1b[31mPREVENT BLOCK SUBMIT: ALREADY SUBMITTED THIS NONCE\x1b[0m");
+              }
               _this.generateWork();
           }
-          //_this.solutionCache.push({id:jobID,method:'mining.submit',params:submission});
-          //console.log('PREVENTED '+_this.solutionCache.length+' BLOCKS');
-        
         }
         _this.isSubmitting = true; //block
         
@@ -1192,14 +1147,12 @@ class HandyMiner {
   }
 	mineBlock(response){
     const _this = this;
-		//let block = this.getBlockHeader(this.nonce2);
+		
     this.generateWork(); //prep some work ahead of time for the miner exec to pickup right away on init
     if(process.env.HANDYRAW){
       process.stdout.write(JSON.stringify({type:'stratumLog',message:'starting miner'})+'\n')
     }
-    /*else{
-      console.log("\x1b[36mHANDY:: STARTING MINER\x1b[0m ",_this.gpuListString,_this.platformID)
-    }*/
+    
     if(_this.gpuListString != '-1'){
       _this.gpuListString.split(',').map(s=>{return s.trim();}).map((gpuID,gpuI)=>{
         _this.spawnGPUWorker(gpuID,gpuI);
@@ -1294,6 +1247,7 @@ class HandyMiner {
       if(minuteNow == parseInt(mTarget) && !_this.isMGoing){
         //we're at the minute Target
         _this.kickoffMinerProcess();
+        _this.catchMinerTimeoutErrs();
       }
     },60000);
   }
@@ -1399,7 +1353,7 @@ class HandyMiner {
   getDeviceWork(deviceWorkJSON){
     //array of getworks from stdin
     const _this = this;
-    //console.log('device work json?',deviceWorkJSON);
+    
     let messageStrings = [];
 
     deviceWorkJSON.map(function(workObject){
@@ -1409,7 +1363,7 @@ class HandyMiner {
       for(let i=nonce2String.length;i<8;i++){
         nonce2String = '0'+nonce2String;
       }
-      //console.log('nonce2string',nonce2String);
+      
       _this.nonce2 = nonce2String;
       workObject.nonce2 = nonce2String;
       
@@ -1437,9 +1391,7 @@ class HandyMiner {
       }
       let messageContent = d.gpu+'|'+intensity+'|'+(d.work.header.toString('hex'))+'|'+(d.work.pad8.toString('hex'))+'|'+(d.work.pad32.toString('hex'))+'|'+(d.work.target.toString('hex'))+'|';
       messageStrings.push(messageContent);
-      /*if(typeof _this.gpuWorkers[d.gpu] != "undefined"){
-        _this.gpuWorkers[d.gpu].stdin.write(messageContent+"\r\n");  
-      }*/
+      
       if(typeof _this.writeOps == "undefined"){
           _this.writeOps = {};
         }
@@ -1457,20 +1409,7 @@ class HandyMiner {
 
           //try to write the temp work file, if it fails try again
           fs.writeFile(process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work.temp',blockHeader,(err,data)=>{
-            if(err){
-              //console.log("ERROR WRITING WORK FOR",d.gpu);
-              if(attemptCount <= 2){
-                //console.error("\x1b[36mERROR IN WORK CREATE\x1b[0m",attemptCount);
-                /*setTimeout(()=>{
-                  tryWrite(attemptCount + 1,platform,gpu,blockHeader);
-                },100);*/
-              }
-            }
-            else{
-              //console.log("WRITE TEMP WORK SUCCESS");
-                /*if(attemptCount > 0){
-                  console.log("\x1b[36mSUCCESSFUL WORK CREATE\x1b[0m",attemptCount);
-                }*/
+            if(!err){
                 tryRename(0,platform,gpu);
             }
           });
@@ -1481,32 +1420,17 @@ class HandyMiner {
           process.env.TEMP+'/HandyMiner/'+platform+'_'+gpu+'.work',
           (err2,data2)=>{
             if(err2){
-              //console.error("\x1b[36mERROR IN WORK RENAME\x1b[0m",attemptCount);
+              
               if(attemptCount <= 2){
                 _this.writeOps[platform+'_'+gpu] = setTimeout(()=>{
                   tryRename(attemptCount+1,platform,gpu);
                 },100);  
-              }
-              //console.log("ERROR MOVING TEMP WORK FOR",d.gpu);
-            }
-            else{
-              if(attemptCount > 0){
-                //console.error("\x1b[36mSUCCESSFUL WORK RENAME\x1b[0m");
               }
             }
           }
         );
       }
       
-
-      
-      /*setTimeout(function(){
-        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
-      },121);
-      setTimeout(function(){
-        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
-      },565);*/
-      //Note: I dont feel great about this setTimeout nonsense here but its the only way to prevent race conditions rn...
       if(process.env.HANDYRAW){
         //log our difficulty and target information for dashboardface
         process.stdout.write(JSON.stringify({difficulty:d.work.blockTemplate.difficulty,target:d.work.blockTemplate.target.toString('hex'),gpu:d.gpu,platform:d.platform,type:'difficulty'})+'\n');
@@ -1546,14 +1470,6 @@ class HandyMiner {
 
       });
 
-      
-      /*setTimeout(function(){
-        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
-      },121);
-      setTimeout(function(){
-        fs.writeFileSync(process.env.HOME+'/.HandyMiner/'+d.platform+'_'+d.gpu+'.work',messageContent);
-      },565);*/
-      //Note: I dont feel great about this setTimeout nonsense here but its the only way to prevent race conditions rn...
       if(process.env.HANDYRAW){
         //log our difficulty and target information for dashboardface
         process.stdout.write(JSON.stringify({difficulty:d.work.blockTemplate.difficulty,target:d.work.blockTemplate.target.toString('hex'),gpu:d.gpu,platform:d.platform,type:'difficulty'})+'\n');
@@ -1573,11 +1489,21 @@ class HandyMiner {
     
     
   }
+  catchMinerTimeoutErrs(){
+    //catch stratum timeout errs globally
+    //seems like these might be causing the Ctrl-C issue in dashboard?
+    if(typeof this.server != "undefined"){
+      this.server.on('error',(response)=>{
+        //dont die&block here
+      });
+    }
+    if(typeof this.redundant != "undefined"){
+      this.redundant.on('error',(response)=>{
+        //dont die&block here either
+      })
+    }
+  }
 }
 
 module.exports = HandyMiner;
-//the important thing: kick it off.
-//let miner = new Handy();
-//should you want to include this whole thing in some node app::
-//remove ```let miner = new Handy();``` and export Handy
 
