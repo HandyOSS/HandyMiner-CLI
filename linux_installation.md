@@ -1,4 +1,4 @@
-###Linux Installation
+### Linux Installation
 OpenCL drivers for Nvidia or AMD cards is required. How to install::
 ```
 sudo add-apt-repository ppa:graphics-drivers
@@ -22,3 +22,11 @@ sudo apt-get install node-gyp
 sudo apt install libunbound-dev
 sudo apt install alsa-utils
 ```
+
+#### If you plan to use the CLI Dashboard:
+
+Make sure that you have installed ```nvidia-smi``` (nvidia) or ```rocm-smi``` (amd) as they will collect relevant temperature/fan stats for the dashboard view
+
+#### HiveOS Users possible gotchas during installation:
+
+During dependency installation, hiveOS users may run into errors about ```EACCES permissions for mkdir```. To resolve, run the install command like: ```sudo npm install --unsafe-perm=true --allow-root```
