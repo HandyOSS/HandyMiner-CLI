@@ -59,7 +59,7 @@ C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin
 
 Once you have finished the installer, you can start the miner! Make sure to [start a fullnode](#runFullnode) if you intend on solo mining to 127.0.0.1 to your own hsd fullnode. 
 #### Note:
-We do not auto-start the fullnode for you here like we do in HandyMiner-GUI. However we made it easy here and its a [double click to start it](#runFullnode). If you just want to play simnet to check hashrates, feel free to use the simnet node at: ```ip: 3.14.224.108 port: 3008```
+We do not auto-start the fullnode for you here like we do in HandyMiner-GUI. However we made it easy here and its a [double click to start it](#runFullnode). 
 
 ### THE POINT
 
@@ -86,7 +86,7 @@ Note: Mac users need to enter their password to use the dashboard utility. We're
 
 #### Mine blocks!
 
-(Ctrl+C to stop the miner)
+(Ctrl+C, q, or esc to stop the miner)
 
 <a id="minerConfigurator"></a>
 ### MINER CONFIGURATOR
@@ -114,12 +114,12 @@ Use your arrow keys, the list is scrollable. Hit space to multi-select and Enter
 <a id="runFullnode"></a>
 ### Running an HSD Fullnode for solo mining
 
-There are some handy docker utilities in the folder ```./fullnode_utils``` which you can double click on mac/windows/linux to create, launch, stop or nuke a stratum-enabled fullnode on your local machine that you can mine to. Any utilities speicific to the POWNG-simnet tests are noted in the command names. 
+There are some handy docker utilities in the folder ```./fullnode_utils``` which you can double click on mac/windows/linux to create, launch, stop or nuke a stratum-enabled fullnode on your local machine that you can mine to. Any utilities specific to the network (main|testnet|simnet) are noted in the command names. 
 
 <a id="dockerReminders"></a>
 #### Docker Fullnode Reminders:
 1. Make sure you installed docker. PSA: you dont need to login to docker either, dont let them fool you [mac, hunt for the dmg link](https://docs.docker.com/docker-for-mac/release-notes/) [windows, hunt for the exe link](https://docs.docker.com/docker-for-windows/release-notes/) ). Even after you install it: you dont need to login in order to run this goodness.
-2. Make sure that you added your wallet address you'd like paid at to ```run.mac.command OR run.windows.bat OR run.sh (for production)``` or ```run.powng.mac.command OR run.powng.windows.bat OR run.powng.sh (for simnet powng testing rn)``` in the end of the command that looks like: ```"./run.sh hs1qu2zqenh8jdxvaqz7nwun4r3k32klmuf6ss2y9s simnet"```
+2. Make sure that you added your wallet address you'd like paid at to ```run.mac.command OR run.windows.bat OR run.sh (for production)``` or ```run.powng.mac.command OR run.powng.windows.bat OR run.powng.sh (for simnet)``` in the end of the command that looks like: ```"./run.sh hs1qu2zqenh8jdxvaqz7nwun4r3k32klmuf6ss2y9s simnet"```
 
 #### Docker Fullnode FAQs:
 
@@ -138,4 +138,4 @@ Edit the file you run the fullnode with, ```run.mac.command``` or ```run.windows
 ```docker start earthlabHSD && docker exec -i earthlabHSD sh -c "./run.sh hs1qu2zqenh8jdxvaqz7nwun4r3k32klmuf6ss2y9s main my_hsd_api_password_here my_stratum_password_here"``` 
 and pay attention that the passwords are inside that double quote ^^
 
-4. If you don't want to run a Dockerized fullnode, you can feel free to check the docs in ```simnet_powng_fullnode_native_readme.md``` to see how to launch your own native fullnode that is on simnet and pow-ng.
+4. If you don't want to run a Dockerized fullnode, you can feel free to check the docs in ```fullnode_native_readme.md``` to see how to launch your own native hsd fullnode.
