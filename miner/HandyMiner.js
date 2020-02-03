@@ -93,6 +93,7 @@ class HandyMiner {
     this.stratumPass = config.stratum_pass || 'earthlab'; //going to think this might be wallet?
     this.platformID = config.gpu_platform || '0';
     this.sid = "";
+    this.IS_HNSPOOLSTRATUM = false;
     this.gpuWorkers = {};
     this.gpuNames = {};
     this.lastGPUHashrate = {};
@@ -246,13 +247,19 @@ class HandyMiner {
       let callTS = new Date().getTime();
       //this is some admin user i think?
       const serverAdminPass = stratumUsersFromArgs.serverPass;
-      // this.server.write(JSON.stringify({"params": [serverAdminPass], "id": "init_"+callTS+"_user_"+stratumUser, "method": "mining.authorize_admin"})+'\n');
-
-      // this.server.write(JSON.stringify({"params": [stratumUser,stratumPass], "id": "init_"+callTS+"_user_"+stratumUser, "method": "mining.add_user"})+'\n');
-      //}
-
-      this.server.write(JSON.stringify({"id":this.targetID,"method":"authorize","params":[stratumUser,stratumPass, "handy-miner-v0.0.0"]})+"\n");
-      this.server.write(JSON.stringify({"id":this.registerID,"method":"subscribe","params":["handy-miner-v0.0.0", ""]})+"\n");
+      if(this.config.mode == 'pool'){
+        //format connection messages for hnspool
+        this.server.write(JSON.stringify({"id":this.targetID,"method":"authorize","params":[stratumUser,stratumPass, "handy-miner-v0.0.0"]})+"\n");
+        this.server.write(JSON.stringify({"id":this.registerID,"method":"subscribe","params":["handy-miner-v0.0.0", ""]})+"\n");
+      }
+      else{
+        //format connection strings for solo stratum
+        this.server.write(JSON.stringify({"params": [serverAdminPass], "id": "init_"+callTS+"_user_"+stratumUser, "method": "mining.authorize_admin"})+'\n');
+        this.server.write(JSON.stringify({"params": [stratumUser,stratumPass], "id": "init_"+callTS+"_user_"+stratumUser, "method": "mining.add_user"})+'\n');
+        this.server.write(JSON.stringify({"id":this.targetID,"method":"mining.authorize","params":[stratumUser,stratumPass]})+"\n");
+        this.server.write(JSON.stringify({"id":this.registerID,"method":"mining.subscribe","params":[]})+"\n");
+      }
+      
 
       //kill connection when we kill the script.
       //stratum TODO: gracefully handle messy deaths/disconnects from clients else it kills hsd atm.
@@ -432,18 +439,21 @@ class HandyMiner {
       //console.log('mining message',resp);
     resp.map((d)=>{
       switch(d.method){
-        case 'authoize':
+        case 'authorize':
             break;
         case 'subscribe':
-              console.log(d);
+            //console.log(d);
             this.sid = d.result;
+            this.IS_HNSPOOLSTRATUM = true;
             break;
         case 'notify':
+        case 'mining.notify':
           if(/*this.isMGoing*/isLocalResponse){
             this.lastLocalResponse = d;
             //this.refreshAllJobs();
           }
         break;
+        case 'mining.set_difficulty':
         case 'set_difficulty':
           if(!this.isMGoing){
             if(!this.useStaticPoolDifficulty){
@@ -496,6 +506,7 @@ class HandyMiner {
 	handleResponse(JSONLineObjects){
 		JSONLineObjects.map((d)=>{
 			switch(d.method){
+        case 'mining.notify':
 				case 'notify':
 					if(process.env.HANDYRAW){
             process.stdout.write(JSON.stringify({type:'stratumLog',data:'Received New Job From Stratum'})+'\n')
@@ -522,6 +533,7 @@ class HandyMiner {
 
 				break; //got some new jarbs or block
 				case 'set_difficulty':
+        case 'mining.set_difficulty':
 					//TODO impl pool difficulty vs solo diff that we're using now
 				break;
 				case undefined:
@@ -698,14 +710,33 @@ class HandyMiner {
     if(typeof nonce2Override != "undefined"){
       nonce2 = nonce2Override;
     }
+    let reservedRoot;
+    let witnessRoot;
+    let treeRoot;
+    let maskHash;
+    let version;
+    let bits;
+    let time;
+    if(this.IS_HNSPOOLSTRATUM){
+      //support HNSPOOL response format
+      reservedRoot = response.params[3]; //these are prob all zeroes rn but here for future use
+      witnessRoot = response.params[4];
+      treeRoot = response.params[5];
+      maskHash = response.params[6];
+      version = response.params[7];
+      bits = response.params[8];
+      time = response.params[9];
+    }
+    else{
+      witnessRoot = response.params[3]; 
+      treeRoot = response.params[4];
+      reservedRoot = response.params[5]; //these are prob all zeroes rn but here for future use
+      version = response.params[6];
+      bits = response.params[7];
+      time = response.params[8];
+    }
 
-    const reservedRoot = response.params[3]; //these are prob all zeroes rn but here for future use
-    const witnessRoot = response.params[4];
-    const treeRoot = response.params[5];
-    const maskHash = response.params[6];
-    const version = response.params[7];
-    const bits = response.params[8];
-    const time = response.params[9];
+    
 
     let bt = {};//new template.BlockTemplate();
 
@@ -713,18 +744,23 @@ class HandyMiner {
 
 
     bt.treeRoot = Buffer.from(treeRoot,'hex');
-    bt.version = version;
-    bt.time = time;
-    bt.bits = bits;
+
+    bt.version = parseInt(version,16);
+    bt.time = parseInt(time,16);
+    bt.bits = parseInt(bits,16);
+    
     bt.witnessRoot = Buffer.from(witnessRoot,'hex');
     bt.reservedRoot = Buffer.from(reservedRoot,'hex');
-    // let mask = utils.ZERO_HASH;
-    // bt.mask = mask;
 
-    // bt.maskHash = utils.maskHash(bt.prevBlock,mask);
-    bt.maskHash = Buffer.from(maskHash, 'hex');
-
-
+    if(this.IS_HNSPOOLSTRATUM){
+      bt.maskHash = Buffer.from(maskHash, 'hex');
+    }
+    else{
+      let mask = utils.ZERO_HASH;
+      bt.mask = mask;
+      bt.maskHash = utils.maskHash(bt.prevBlock,mask);
+    }
+    
     try{
       bt.target = utils.getTarget(bt.bits);
       bt.difficulty = utils.getDifficulty(bt.target);
@@ -743,11 +779,6 @@ class HandyMiner {
       // bt.target = common.getTarget(bt.bits);
       bt.target = utils.getTarget(newBits);
 
-      //we override maskHash from the stratum if isset
-      // if(typeof response.params[9] != "undefined"){
-      //   bt.maskHash = Buffer.from(response.params[9],'hex');
-      // }
-
     }
 
     let hRoot = merkleRoot;
@@ -760,9 +791,10 @@ class HandyMiner {
       extraNonce[i] = exStr[i];
     }
     bt.extraNonce = extraNonce;
-
+    
     const hdrRaw = utils.getRawHeader(0, bt);
-    const data = utils.getMinerHeader(hdrRaw,0,time,bt.maskHash);
+
+    const data = utils.getMinerHeader(hdrRaw,0,parseInt(time,16),bt.maskHash);
 
     const pad8 = utils.padding(8,bt.prevBlock,bt.treeRoot);
     const pad32 = utils.padding(32,bt.prevBlock,bt.treeRoot);
@@ -778,7 +810,6 @@ class HandyMiner {
       target: bt.target,
       nonce2: nonce2,
       blockTemplate:bt,
-      // mask:mask,
       extraNonce:extraNonce
     };
 	}
@@ -1068,15 +1099,26 @@ class HandyMiner {
         let lastJob = _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID];
         _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID].isSubmitting = true;
         let submission = [];
-        submission.push(_this.stratumUser); //tell stratum who won: me.
-        submission.push(lastJob.work.jobID);
-        submission.push(_this.sid + lastJob.nonce2);
-        submission.push(lastJob.work.time);
-        // submission.push('00000000'+outJSON.nonce.slice(8,16));
-        submission.push(parseInt(outJSON.nonce.slice(8,16), 16));
-        // submission.push(lastJob.work.mask.toString('hex'));
-          //
-          console.log(submission);
+        let submitMethod = 'mining.submit';
+        if(_this.IS_HNSPOOLSTRATUM){
+          submission.push(_this.stratumUser); //tell stratum who won: me.
+          submission.push(lastJob.work.jobID);
+          submission.push(_this.sid + lastJob.nonce2);
+          submission.push(lastJob.work.time);
+          submission.push(parseInt(outJSON.nonce.slice(8,16), 16));
+          submitMethod = 'submit';
+          //console.log(submission);
+        }
+        else{
+          submission.push(_this.stratumUser); //tell stratum who won: me.
+          submission.push(lastJob.work.jobID);
+          submission.push(lastJob.nonce2);
+          submission.push(lastJob.work.time);
+          submission.push('00000000'+outJSON.nonce.slice(8,16));
+          submission.push(lastJob.work.blockTemplate.mask.toString('hex'));
+          submitMethod = 'mining.submit';
+        }
+        
 
         if(_this.solutionCache.indexOf(outJSON.nonce) == -1){
 
@@ -1086,7 +1128,7 @@ class HandyMiner {
           }
           server.write(JSON.stringify({
             id:lastJob.work.jobID,
-            method:'submit',
+            method:submitMethod,
             params:submission
           })+"\n"); //submit to stratum
 
