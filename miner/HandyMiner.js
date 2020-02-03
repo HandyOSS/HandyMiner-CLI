@@ -507,6 +507,13 @@ class HandyMiner {
 	handleResponse(JSONLineObjects){
 		JSONLineObjects.map((d)=>{
 			switch(d.method){
+                    //@todo this can be fixed later to add more features
+                case 'authorize':
+                    break;
+                case 'submit':
+                    break;
+                case 'subscribe':
+                    break;
         case 'mining.notify':
 				case 'notify':
 					if(process.env.HANDYRAW){
@@ -792,9 +799,6 @@ class HandyMiner {
       extraNonce[i] = exStr[i];
     }
     bt.extraNonce = extraNonce;
-
-        console.log(bt);
-        console.log(bt.extraNonce.toString("hex"));
 
     const hdrRaw = utils.getRawHeader(0, bt);
 
