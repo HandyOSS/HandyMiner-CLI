@@ -444,7 +444,7 @@ class HandyMiner {
         case 'subscribe':
             //console.log(d);
             this.sid = d.result;
-              this.nonce1 = d.result;
+            this.nonce1 = d.result;
             this.IS_HNSPOOLSTRATUM = true;
             break;
         case 'notify':
@@ -725,7 +725,7 @@ class HandyMiner {
     let version;
     let bits;
     let time;
-    if(this.IS_HNSPOOLSTRATUM){
+    if(this.IS_HNSPOOLSTRATUM && !this.isMGoing){
       //support HNSPOOL response format
       reservedRoot = response.params[3]; //these are prob all zeroes rn but here for future use
       witnessRoot = response.params[4];
@@ -744,8 +744,7 @@ class HandyMiner {
       time = parseInt(response.params[8], 16);
     }
 
-
-
+    
     let bt = {};//new template.BlockTemplate();
 
     bt.prevBlock = Buffer.from(prevBlockHash,'hex');
@@ -760,7 +759,7 @@ class HandyMiner {
     bt.witnessRoot = Buffer.from(witnessRoot,'hex');
     bt.reservedRoot = Buffer.from(reservedRoot,'hex');
 
-    if(this.IS_HNSPOOLSTRATUM){
+    if(this.IS_HNSPOOLSTRATUM && !this.isMGoing){
       bt.maskHash = Buffer.from(maskHash, 'hex');
     }
     else{
@@ -1108,7 +1107,7 @@ class HandyMiner {
         _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID].isSubmitting = true;
         let submission = [];
         let submitMethod = 'mining.submit';
-        if(_this.IS_HNSPOOLSTRATUM){
+        if(_this.IS_HNSPOOLSTRATUM && !_this.isMGoing){
           submission.push(_this.stratumUser); //tell stratum who won: me.
           submission.push(lastJob.work.jobID);
           submission.push(_this.sid + lastJob.nonce2);
@@ -1121,12 +1120,11 @@ class HandyMiner {
           submission.push(_this.stratumUser); //tell stratum who won: me.
           submission.push(lastJob.work.jobID);
           submission.push(lastJob.nonce2);
-          submission.push(lastJob.work.time);
+          submission.push(lastJob.work.time.toString(16));
           submission.push('00000000'+outJSON.nonce.slice(8,16));
           submission.push(lastJob.work.blockTemplate.mask.toString('hex'));
           submitMethod = 'mining.submit';
         }
-
 
         if(_this.solutionCache.indexOf(outJSON.nonce) == -1){
 
