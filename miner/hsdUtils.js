@@ -205,7 +205,7 @@ function toSubhead(bt) {
   // The subheader contains miner-mutable
   // and less essential data (that is,
   // less essential for SPV resolvers).
-  
+
   bw.writeBytes(bt.extraNonce);
   bw.writeHash(bt.reservedRoot);
   bw.writeHash(bt.witnessRoot);

@@ -259,7 +259,7 @@ class HandyMiner {
         this.server.write(JSON.stringify({"id":this.targetID,"method":"mining.authorize","params":[stratumUser,stratumPass]})+"\n");
         this.server.write(JSON.stringify({"id":this.registerID,"method":"mining.subscribe","params":[]})+"\n");
       }
-      
+
 
       //kill connection when we kill the script.
       //stratum TODO: gracefully handle messy deaths/disconnects from clients else it kills hsd atm.
@@ -444,6 +444,7 @@ class HandyMiner {
         case 'subscribe':
             //console.log(d);
             this.sid = d.result;
+              this.nonce1 = d.result;
             this.IS_HNSPOOLSTRATUM = true;
             break;
         case 'notify':
@@ -728,15 +729,15 @@ class HandyMiner {
       time = response.params[9];
     }
     else{
-      witnessRoot = response.params[3]; 
+      witnessRoot = response.params[3];
       treeRoot = response.params[4];
       reservedRoot = response.params[5]; //these are prob all zeroes rn but here for future use
-      version = response.params[6];
-      bits = response.params[7];
-      time = response.params[8];
+      version = parseInt(response.params[6], 16);
+      bits = parseInt(response.params[7], 16);
+      time = parseInt(response.params[8], 16);
     }
 
-    
+
 
     let bt = {};//new template.BlockTemplate();
 
@@ -745,10 +746,10 @@ class HandyMiner {
 
     bt.treeRoot = Buffer.from(treeRoot,'hex');
 
-    bt.version = parseInt(version,16);
-    bt.time = parseInt(time,16);
-    bt.bits = parseInt(bits,16);
-    
+    bt.version = version;
+    bt.time = time;
+    bt.bits = bits;
+
     bt.witnessRoot = Buffer.from(witnessRoot,'hex');
     bt.reservedRoot = Buffer.from(reservedRoot,'hex');
 
@@ -760,7 +761,7 @@ class HandyMiner {
       bt.mask = mask;
       bt.maskHash = utils.maskHash(bt.prevBlock,mask);
     }
-    
+
     try{
       bt.target = utils.getTarget(bt.bits);
       bt.difficulty = utils.getDifficulty(bt.target);
@@ -791,10 +792,13 @@ class HandyMiner {
       extraNonce[i] = exStr[i];
     }
     bt.extraNonce = extraNonce;
-    
+
+        console.log(bt);
+        console.log(bt.extraNonce.toString("hex"));
+
     const hdrRaw = utils.getRawHeader(0, bt);
 
-    const data = utils.getMinerHeader(hdrRaw,0,parseInt(time,16),bt.maskHash);
+    const data = utils.getMinerHeader(hdrRaw,0,time,bt.maskHash);
 
     const pad8 = utils.padding(8,bt.prevBlock,bt.treeRoot);
     const pad32 = utils.padding(32,bt.prevBlock,bt.treeRoot);
@@ -1118,7 +1122,7 @@ class HandyMiner {
           submission.push(lastJob.work.blockTemplate.mask.toString('hex'));
           submitMethod = 'mining.submit';
         }
-        
+
 
         if(_this.solutionCache.indexOf(outJSON.nonce) == -1){
 
