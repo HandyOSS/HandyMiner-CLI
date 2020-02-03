@@ -440,6 +440,7 @@ class HandyMiner {
     resp.map((d)=>{
       switch(d.method){
         case 'authorize':
+            this.IS_HNSPOOLSTRATUM = true;
             break;
         case 'subscribe':
             //console.log(d);
@@ -448,6 +449,7 @@ class HandyMiner {
             this.IS_HNSPOOLSTRATUM = true;
             break;
         case 'notify':
+            this.IS_HNSPOOLSTRATUM = true;
         case 'mining.notify':
           if(/*this.isMGoing*/isLocalResponse){
             this.lastLocalResponse = d;
@@ -744,7 +746,7 @@ class HandyMiner {
       time = parseInt(response.params[8], 16);
     }
 
-    
+
     let bt = {};//new template.BlockTemplate();
 
     bt.prevBlock = Buffer.from(prevBlockHash,'hex');
