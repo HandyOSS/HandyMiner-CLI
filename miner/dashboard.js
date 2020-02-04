@@ -55,6 +55,11 @@ class CLIDashboard{
 			if(!err){
 				this.config = JSON.parse(data.toString('utf8'));
 				//console.log('starting miner')
+				if(this.config.host.indexOf('6block') >= 0){
+			      console.log('\x1b[36m6BLOCK POOL SUPPORT COMING ASAP\x1b[0m');
+			      console.log('\x1b[36mPLEASE USE HNSPOOL\x1b[0m');
+			      process.exit(0);
+			    }
 				this.startMiner();
 				this.initBlessed();
 				this.startPowerTimer();
