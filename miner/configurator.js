@@ -195,6 +195,17 @@ class HandyConfigurator{
 				  	if(answers.wallet != ''){
 				  		this._wallet = answers.wallet;
 				  	}
+				  	if(answers.stratumPort != ''){
+				  		let port;
+				  		try{
+				  			port = parseInt(answers.stratumPort);
+				  		}
+				  		catch(e){
+				  			port = answers.stratumPort;
+				  		}
+				  		this._stratumPort = port;
+				  	}
+
 
 				  	this._miningMode = answers.miningMode.toLowerCase();
 				  	//console.log('intensity',answers.intensity);
