@@ -16,7 +16,7 @@ class HandyConfigurator{
 		this._wallet;
 		this._muteVictoryFanfare = false;
 		this._intensity = 10;
-		this._poolDifficulty = 10;
+		this._poolDifficulty = 100;
 	}
 	configure(callback){
 				
@@ -248,9 +248,9 @@ class HandyConfigurator{
 				  	if(this._miningMode == 'pool'){
 				  		inquirer.prompt([{
 				  			name:'pooldiff',
-				  			message:'Pool Difficulty (10)'
+				  			message:'Pool Difficulty (100)'
 				  		}]).then(pda=>{
-				  			console.log('pool diff answer',pda.pooldiff);
+				  			//console.log('pool diff answer',pda.pooldiff);
 				  			if(pda.pooldiff != ''){
 				  				config.poolDifficulty = parseInt(pda.pooldiff);
 				  			}
