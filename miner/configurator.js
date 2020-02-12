@@ -16,7 +16,7 @@ class HandyConfigurator{
 		this._wallet;
 		this._muteVictoryFanfare = false;
 		this._intensity = 10;
-		this._poolDifficulty = 100;
+		this._poolDifficulty = 1024;
 	}
 	configure(callback){
 				
@@ -152,10 +152,10 @@ class HandyConfigurator{
 				    	name:'stratumPass',
 				    	message:'Stratum Password: (earthlab)'
 				    },
-				    {
+				    /*{
 				    	name:'wallet',
-				    	message:'Wallet: (only required for pool)'
-				    },
+				    	message:'Wallet: (only required for some pools)'
+				    },*/
 				    {
 				    	name:'intensity',
 				    	type:'list',
@@ -192,9 +192,9 @@ class HandyConfigurator{
 				  	if(answers.stratumHost != ''){
 				  		this._stratumHost = answers.stratumHost;
 				  	}
-				  	if(answers.wallet != ''){
+				  	/*if(answers.wallet != ''){
 				  		this._wallet = answers.wallet;
-				  	}
+				  	}*/
 				  	if(answers.stratumPort != ''){
 				  		let port;
 				  		try{
@@ -240,7 +240,7 @@ class HandyConfigurator{
 						"port":this._stratumPort,
 						"stratum_user":this._stratumUser,
 						"stratum_pass":this._stratumPass,
-						"wallet":this._wallet,
+						//"wallet":this._wallet,
 						"mode":this._miningMode,
 						"poolDifficulty":this._poolDifficulty,
 						"muteWinningFanfare":this._muteVictoryFanfare
@@ -248,7 +248,7 @@ class HandyConfigurator{
 				  	if(this._miningMode == 'pool'){
 				  		inquirer.prompt([{
 				  			name:'pooldiff',
-				  			message:'Pool Difficulty (100)'
+				  			message:'Pool Difficulty (1024, set to -1 for dynamic)'
 				  		}]).then(pda=>{
 				  			//console.log('pool diff answer',pda.pooldiff);
 				  			if(pda.pooldiff != ''){

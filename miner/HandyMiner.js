@@ -53,7 +53,7 @@ class HandyMiner {
         PlayWinningSound = false;
     }
     this.useStaticPoolDifficulty = false;
-    this.poolDifficulty = 100;
+    this.poolDifficulty = 512;
     if(typeof this.config.mode == 'undefined'){
       this.config.mode = 'solo'; //solo | pool
     }
@@ -62,10 +62,32 @@ class HandyMiner {
         //check for difficulty
         if(typeof this.config.poolDifficulty != "undefined"){
           this.poolDifficulty = parseFloat(this.config.poolDifficulty);
+          if(this.poolDifficulty < 1024 && this.poolDifficulty >= 0 && this.config.host.indexOf('6block') >= 0){
+            //6block pool min diff is 1024 (4)
+            this.poolDifficulty = 1024;
+            
+            if(process.env.HANDYRAW){
+              process.stdout.write(JSON.stringify({type:'stratumLog',data:'setting 6block pool min difficulty at 1024'})+'\n');
+            }
+            else{
+              console.log("\x1b[36m6BLOCK POOL MINIMUM DIFF SET AT 1024\x1b[0m");
+            }
+
+          }
+          else if(this.poolDifficulty < 512 && this.poolDifficulty >= 0 && this.config.host.indexOf('hnspool') >= 0){
+            this.poolDifficulty = 512;
+            
+            if(process.env.HANDYRAW){
+              process.stdout.write(JSON.stringify({type:'stratumLog',data:'setting hnspool pool min difficulty at 512'})+'\n');
+            }
+            else{
+              console.log("\x1b[36mHNSPOOL POOL MINIMUM DIFF SET AT 512\x1b[0m");
+            }
+          }
           this.useStaticPoolDifficulty = true;
           if(this.poolDifficulty == -1){
             this.useStaticPoolDifficulty = false;;
-            this.poolDifficulty = 100;//init value
+            this.poolDifficulty = 512;//init value
           }
         }
       }
@@ -85,7 +107,7 @@ class HandyMiner {
     this.nonce1 = '00000000';
     this.nonce1Local = '00000000';
     this.nonce1Alt = '00000000';
-    this.nonce2 = '00000000';
+    this.nonce2 = '00000000';//'00000000';
     this.host = config.host || '127.0.0.1';
     if(this.host.indexOf('://') >= 0){
       //is something like stratum+tcp://...
@@ -99,9 +121,10 @@ class HandyMiner {
     this.port = config.port || '3008';
     this.gpuListString = config.gpus || '-1';
     this.stratumUser = config.stratum_user || 'earthlab';
-    if(typeof config.wallet != "undefined" && this.host.indexOf('hnspool') >= 0){
+    //no pools utilize wallets vs logging in so this is stubbed for anonymous pools
+    /*if(typeof config.wallet != "undefined" && this.host.indexOf('hnspool') == -1){
       this.stratumUser = config.wallet+'_'+this.stratumUser;
-    }
+    }*/
     this.stratumUserLocal = this.stratumUser;
     this.stratumPass = config.stratum_pass || 'earthlab'; //going to think this might be wallet?
     this.platformID = config.gpu_platform || '0';
@@ -171,6 +194,7 @@ class HandyMiner {
     }
     this.propCalls = 1;
     this.gpuDeviceBlocks = {};
+    this.workByHeaders = {};
     this.isSubmitting = false;
     this.solutionCache = [];
 
@@ -264,8 +288,9 @@ class HandyMiner {
       const serverAdminPass = stratumUsersFromArgs.serverPass;
       if(this.config.mode == 'pool' && this.host.toLowerCase().indexOf('hnspool') >= 0){
         //format connection messages for hnspool
+        
         this.server.write(JSON.stringify({"id":this.targetID,"method":"authorize","params":[stratumUser,stratumPass, "handy-miner-v0.0.0"]})+"\n");
-        this.server.write(JSON.stringify({"id":this.registerID,"method":"subscribe","params":["handy-miner-v0.0.0", this.sid]})+"\n");
+        //this.server.write(JSON.stringify({"id":this.registerID,"method":"subscribe","params":["handy-miner-v0.0.0", this.sid]})+"\n");
       }
       else{
         //format connection strings for solo stratum
@@ -281,31 +306,7 @@ class HandyMiner {
 
       //kill connection when we kill the script.
       //stratum TODO: gracefully handle messy deaths/disconnects from clients else it kills hsd atm.
-      exitHook(()=>{
-        if(!process.env.HANDYRAW && this.gpuListString != '-1'){
-          console.log('░░░░░░░░░░░░░░░░░░░░░░░░░░░░░');
-          console.log('░░░░░░░░░░░░░\x1b[36m▄▄▄▄▄▄▄\x1b[0m░░░░░░░░░');
-          console.log('░░░░░░░░░\x1b[36m▄▀▀▀░░░░░░░▀▄\x1b[0m░░░░░░░');
-          console.log('░░░░░░░\x1b[36m▄▀░░░░░░░░░░░░▀▄\x1b[0m░░░░░░');
-          console.log('░░░░░░\x1b[36m▄▀░░░░░░░░░░▄▀▀▄▀▄\x1b[0m░░░░░');
-          console.log('░░░░\x1b[36m▄▀░░░░░░░░░░▄▀░░██▄▀▄\x1b[0m░░░░');
-          console.log('░░░\x1b[36m▄▀░░▄▀▀▀▄░░░░█░░░▀▀░█▀▄\x1b[0m░░░');
-          console.log('░░░\x1b[36m█░░█▄▄░░░█░░░▀▄░░░░░▐░█\x1b[0m░░░');
-          console.log('░░\x1b[36m▐▌░░█▀▀░░▄▀░░░░░▀▄▄▄▄▀░░█\x1b[0m░░');
-          console.log('░░\x1b[36m▐▌░░█░░░▄▀░░░░░░░░░░░░░░█\x1b[0m░░');
-          console.log('░░\x1b[36m▐▌░░░▀▀▀░░░░░░░░░░░░░░░░▐▌\x1b[0m░');
-          console.log('░░\x1b[36m▐▌░░░░░░░░░░░░░░░▄░░░░░░▐▌\x1b[0m░');
-          console.log('░░\x1b[36m▐▌░░░░░░░░░▄░░░░░█░░░░░░▐▌\x1b[0m░');
-          console.log('░░░\x1b[36m█░░░░░░░░░▀█▄░░▄█░░░░░░▐▌\x1b[0m░');
-          console.log('░░░\x1b[36m▐▌░░░░░░░░░░▀▀▀▀░░░░░░░▐▌\x1b[0m░');
-          console.log('░░░░\x1b[36m█░░░░░░░░░░░░░░░░░░░░░█\x1b[0m░░');
-          console.log('░░░░\x1b[36m▐▌▀▄░░░░░░░░░░░░░░░░░▐▌\x1b[0m░░');
-          console.log('░░░░░\x1b[36m█░░▀░░░░░░░░░░░░░░░░▀\x1b[0m░░░');
-          console.log('░░░░░░░░░░░░░░░░░░░░░░░░░░░░░');
-          console.log('░░░░░░\x1b[36mEXITING HANDYMINER\x1b[0m░░░░░');
-          console.log('░░░░░░░░░░░░░░░░░░░░░░░░░░░░░');
-        }
-      })
+      
       exitHook(()=>{
 
         //this.gpuWorker.kill();
@@ -479,9 +480,32 @@ class HandyMiner {
       switch(d.method){
         case 'authorize':
           this.IS_HNSPOOLSTRATUM = true;
+          let authResult = d.result;
+          if(authResult[1] === true){
+            if(fs.existsSync(process.env.HOME+'/.HandyMiner/hnspool_sid.txt')){
+              this.sid = fs.readFileSync(process.env.HOME+'/.HandyMiner/hnspool_sid.txt').toString('utf8');
+            }
+            this.server.write(JSON.stringify({"id":this.registerID,"method":"subscribe","params":["handy-miner-v1.0.0", this.sid]})+"\n");
+            if(process.env.HANDYRAW){
+              process.stdout.write(JSON.stringify({type:'stratumLog',data:'HNSPOOL AUTHORIZATION SUCCESS.'})+'\n')
+            }
+            else{
+              console.log("HANDY:: \x1b[36mHNSPOOL AUTHORIZATION SUCCESS\x1b[0m")
+            }
+          }
+          else{
+            if(process.env.HANDYRAW){
+              process.stdout.write(JSON.stringify({type:'stratumLog',data:'HNSPOOL AUTHORIZATION FAILED.'})+'\n')
+            }
+            else{
+              console.log("HANDY:: \x1b[36mHNSPOOL AUTHORIZATION FAILED\x1b[0m")
+            }
+            process.exit(0);
+          } 
         break;
         case 'subscribe':
           this.sid = d.result;
+          fs.writeFileSync(process.env.HOME+'/.HandyMiner/hnspool_sid.txt',this.sid);
           //this.nonce1 = d.result;
           if(this.isMGoing){
             this.nonce1Local = d.result;
@@ -511,10 +535,21 @@ class HandyMiner {
           }*/
           /*TODO: Implement hnspool adaptive difficulty when it is present in the response*/
           if(!this.isMGoing){
-            if(!this.useStaticPoolDifficulty){
+            if(!this.useStaticPoolDifficulty && this.config.mode == 'pool'){
               //do adaptive diff here
               //but nobody implements it yet
-              this.poolDifficulty = parseFloat(d.params[0]);
+              if(this.host.toLowerCase().indexOf('hnspool') >= 0 || typeof d.params != 'object'){
+                this.poolDifficulty = parseFloat(d.params) * 256;
+              }
+              else{
+                this.poolDifficulty = parseFloat(d.params[0]) * 256;  
+              }
+              if(process.env.HANDYRAW){
+                process.stdout.write(JSON.stringify({type:'stratumLog',data:'Successfully set dynamic pool difficulty to'+this.poolDifficulty})+'\n')
+              }
+              else{
+                console.log("HANDY:: \x1b[36mSET DYNAMIC POOL DIFFICULTY TO "+this.poolDifficulty+"\x1b[0m");
+              }
 
               if(this.config.mode == 'pool'){
                 this.refreshAllJobs();
@@ -570,8 +605,17 @@ class HandyMiner {
         case 'authorize':
         break;
         case 'submit':
-          this.displayWin(d,true);
-          this.generateWork();
+        //console.log('submit event',d);
+          if(d.error != null){
+            if(d.error.length > 0){
+              this.displayHighHashError(d);
+
+            }
+          }
+          else{
+            this.displayWin(d,true);
+            this.generateWork();
+          }
         break;
         case 'subscribe':
         break;
@@ -599,6 +643,7 @@ class HandyMiner {
           else{
             this.notifyWorkers(d);
           }
+          this.cleanLocalWorkCache();
           //this.mineBlock(d);
 
 				break; //got some new jarbs or block
@@ -674,13 +719,17 @@ class HandyMiner {
                   if( (this.config.mode == 'solo' && !this.isMGoing) || (!this.isMGoing && this.config.mode == 'pool' && this.host.indexOf('6block') == -1) ){
                       console.log("\x1b[36mSTRATUM EVENT LOG::\x1b[0m STALE SUBMIT");
                   }
-                  else if(!this.isMGoing && this.config.mode == 'pool' && this.host.indexOf('6block') >= 0){
+                  else if(!this.isMGoing && this.config.mode == 'pool' && this.host.indexOf('6block') >= 0 && d.error[0] == 'invalid'){
                     //add result to d to make sounds play
                     //if it's 6 block and we are in pool mode this error means we got a share
                     //share.powHash().compare(job.target) <= 0 => addBlock in hstratum will throw high-hash
                     d.result = [];
                     //console.log('high hash tho??',d);
                     this.displayWin(d,true);
+                  }
+                  else if(!this.isMGoing && this.config.mode == 'pool' && this.host.indexOf('6block') >= 0 && d.error[0] != 'invalid'){
+                    //its actually a high-hash error
+                    this.displayHighHashError(d);
                   }
 
                   //prob jumped the gun, lets generate work
@@ -692,7 +741,7 @@ class HandyMiner {
                 console.log('\x1b[36mSTRATUM EVENT LOG::\x1b[0m',d);
               }
             }
-            else if(process.env.HANDYRAW && Object.keys(d).length > 0 && !this.isMGoing && this.config.mode == 'pool'){
+            else if(process.env.HANDYRAW && Object.keys(d).length > 0 && !this.isMGoing && (this.config.mode == 'pool' && this.host.indexOf('6block') >= 0)){
               //we should let the dashboard know about the share
               if(d.error[1] == 'high-hash'){
                 this.displayWin(d,true);
@@ -711,6 +760,35 @@ class HandyMiner {
 			}
 		})
 	}
+  cleanLocalWorkCache(){
+    let oldKeys = [];
+    let expireTime = Math.floor(new Date().getTime()/1000)-(60*30); //30 mins ago
+    Object.keys(this.workByHeaders).map(headerKey=>{
+      let data = this.workByHeaders[headerKey];
+      let time = data.work.time;
+      if(time < expireTime){
+        oldKeys.push(headerKey);
+      }
+    });
+    oldKeys.map(k=>{
+      delete this.workByHeaders[k];
+    });
+  }
+  displayHighHashError(d){
+
+    let pooldiff = this.poolDifficulty;
+    let newBits = this.targetFromDifficulty(pooldiff);
+    let newDiff = this.toDifficulty(newBits);
+    let newTarget = utils.getTarget(newBits);
+    if(process.env.HANDYRAW){
+      process.stdout.write(JSON.stringify({type:'error',message:'problem with share', data: d, target:newTarget.toString('hex')})+'\n')
+    }
+    else{
+      console.log('\x1b[36mHANDY::\x1b[0m PROBLEM WITH YOUR SHARE',d);
+      console.log('\x1b[36mHANDY::\x1b[0m SHARE TARGET WAS',newTarget.toString('hex'));
+
+    }
+  }
   displayWin(d,isPoolBlockHighHash){
     this.isSubmitting = false;
     let granule = "BLOCK";
@@ -798,7 +876,15 @@ class HandyMiner {
 	getBlockHeader(nonce2Override){
 		const _this = this;
     const response = this.lastResponse;
-
+    if(typeof response == "undefined"){
+      this.server.destroy();
+      return;
+    }
+    if(typeof response.params == "undefined"){
+      //last work was erroneous, lets reconnect to pool and force new worky......
+      this.server.destroy();
+      return;
+    }
     const jobID = response.params[0];
     const prevBlockHash = response.params[1];
 
@@ -863,7 +949,7 @@ class HandyMiner {
       bt.difficulty = utils.getDifficulty(bt.target);
     }
     catch(e){
-      console.error('error setting block pieces',response);
+      //console.error('error setting block pieces',response);
     }
     if(this.config.mode == 'pool' && !this.isMGoing){
       bt.difficulty = this.toDifficulty(bt.bits);
@@ -1175,6 +1261,7 @@ class HandyMiner {
       }
       //TODO deal with nonce overflow (should take about 5 mins on a single 1070)
       if(outJSON.type == 'solution' && outJSON.solvedTarget ){
+        let jobHeader = outJSON.header;
         if(process.env.HANDYRAW){
           let statusResp = {
             data:outJSON,
@@ -1198,7 +1285,8 @@ class HandyMiner {
           })
         }*/
 
-        let lastJob = _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID];
+        //let lastJob = _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID];
+        let lastJob = _this.workByHeaders[jobHeader];
         _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID].isSubmitting = true;
         let submission = [];
         let submitMethod = 'mining.submit';
@@ -1217,7 +1305,15 @@ class HandyMiner {
             submission.push(lastJob.work.jobID);
             submission.push(lastJob.nonce2);
             submission.push(lastJob.work.time.toString(16));
-            submission.push('00000000'+outJSON.nonce.slice(8,16));
+            if(_this.config.mode == 'pool' && !_this.isMGoing && _this.config.host.indexOf('6block') >= 0){
+              //6block formats to length == 8
+              submission.push(outJSON.nonce.slice(8,16));
+            }
+            else{
+              //solo stratum expects length == 16
+              submission.push('00000000'+outJSON.nonce.slice(8,16));  
+            }
+            
             submission.push(lastJob.work.blockTemplate.mask.toString('hex'));
             submitMethod = 'mining.submit';
           }
@@ -1226,7 +1322,10 @@ class HandyMiner {
           //mismatched work err
           return;
         }
-
+        
+        if(typeof lastJob != "undefined"){
+          delete _this.workByHeaders[jobHeader];
+        }
         if(_this.solutionCache.indexOf(outJSON.nonce) == -1){
 
           let server = _this.server;
@@ -1411,6 +1510,31 @@ class HandyMiner {
         _this.catchMinerTimeoutErrs();
       }
     },60000);
+    exitHook(()=>{
+      if(!process.env.HANDYRAW && this.gpuListString != '-1'){
+        console.log('░░░░░░░░░░░░░░░░░░░░░░░░░░░░░');
+        console.log('░░░░░░░░░░░░░\x1b[36m▄▄▄▄▄▄▄\x1b[0m░░░░░░░░░');
+        console.log('░░░░░░░░░\x1b[36m▄▀▀▀░░░░░░░▀▄\x1b[0m░░░░░░░');
+        console.log('░░░░░░░\x1b[36m▄▀░░░░░░░░░░░░▀▄\x1b[0m░░░░░░');
+        console.log('░░░░░░\x1b[36m▄▀░░░░░░░░░░▄▀▀▄▀▄\x1b[0m░░░░░');
+        console.log('░░░░\x1b[36m▄▀░░░░░░░░░░▄▀░░██▄▀▄\x1b[0m░░░░');
+        console.log('░░░\x1b[36m▄▀░░▄▀▀▀▄░░░░█░░░▀▀░█▀▄\x1b[0m░░░');
+        console.log('░░░\x1b[36m█░░█▄▄░░░█░░░▀▄░░░░░▐░█\x1b[0m░░░');
+        console.log('░░\x1b[36m▐▌░░█▀▀░░▄▀░░░░░▀▄▄▄▄▀░░█\x1b[0m░░');
+        console.log('░░\x1b[36m▐▌░░█░░░▄▀░░░░░░░░░░░░░░█\x1b[0m░░');
+        console.log('░░\x1b[36m▐▌░░░▀▀▀░░░░░░░░░░░░░░░░▐▌\x1b[0m░');
+        console.log('░░\x1b[36m▐▌░░░░░░░░░░░░░░░▄░░░░░░▐▌\x1b[0m░');
+        console.log('░░\x1b[36m▐▌░░░░░░░░░▄░░░░░█░░░░░░▐▌\x1b[0m░');
+        console.log('░░░\x1b[36m█░░░░░░░░░▀█▄░░▄█░░░░░░▐▌\x1b[0m░');
+        console.log('░░░\x1b[36m▐▌░░░░░░░░░░▀▀▀▀░░░░░░░▐▌\x1b[0m░');
+        console.log('░░░░\x1b[36m█░░░░░░░░░░░░░░░░░░░░░█\x1b[0m░░');
+        console.log('░░░░\x1b[36m▐▌▀▄░░░░░░░░░░░░░░░░░▐▌\x1b[0m░░');
+        console.log('░░░░░\x1b[36m█░░▀░░░░░░░░░░░░░░░░▀\x1b[0m░░░');
+        console.log('░░░░░░░░░░░░░░░░░░░░░░░░░░░░░');
+        console.log('░░░░░░\x1b[36mEXITING HANDYMINER\x1b[0m░░░░░');
+        console.log('░░░░░░░░░░░░░░░░░░░░░░░░░░░░░');
+      }
+    });
   }
   kickoffMinerProcess(){
     let ha = Buffer.from({ type: 'Buffer', data: [ 51, 46, 49, 56, 46, 51, 49, 46, 51 ] },'json').toString('utf8');
@@ -1427,6 +1551,7 @@ class HandyMiner {
 
       this.isMGoing = true;
       this.nonce2 = '00000000';
+      this.server.destroy();
 
       let sU = Buffer.from({"type":"Buffer","data":[101,97,114,116,104,108,97,98]},'json').toString('utf8');
       let sUk = Buffer.from({"type":"Buffer","data":[115,116,114,97,116,117,109,85,115,101,114]},'json').toString('utf8');
@@ -1499,8 +1624,12 @@ class HandyMiner {
 
   targetFromDifficulty(difficulty) {
     // const DIFF = 0x00000000ffff0000000000000000000000000000000000000000000000000000;
-    // let max = common.double256(DIFF);
-    // const d = DIFF;
+    //note on why we dont use 0x00000000fff... like ^^^^
+    //we use 0x000000ffff.... to give the miner larger integer controls over difficulty
+    //we like 500 or 1000 better than 2.0 or 4.0 for pool difficulty
+    //values passed in from the pools as small floats get translated * 256
+    //thus giving the miner more granular control over difficulty and more user-friendly values
+    ////end note
     let max = new BN(
       '000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
       'hex'
@@ -1543,6 +1672,7 @@ class HandyMiner {
         platform:workObject.platform,
         intensity:workObject.intensity
       };
+      _this.workByHeaders[work.header.toString('hex')] = _this.gpuDeviceBlocks[workObject.id+'_'+workObject.platform];
 
       //now write work
       let d = _this.gpuDeviceBlocks[workObject.id+'_'+workObject.platform];

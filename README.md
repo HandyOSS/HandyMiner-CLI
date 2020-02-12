@@ -1,8 +1,15 @@
 HANDYMINER
 2019 Alex Smith <alex.smith@earthlab.tech>
 
+**HandyMiner Support Telegram Channel:**
+[t.me/handshakemining](t.me/handshakemining)
+
+**Updates 02/11/2020::**
+- Now supporting variable pool difficulty by setting poolDifficulty to ```-1``` in your config.json
+- 6block and hnspool integration fully tested and supported
+
 A simple wrapper for cBlake PoW-NG OpenCL Miner
-to communicate with Handshake HSD via Stratum (hstratum)
+to communicate with Handshake HSD via Stratum Mining
 
 ```
        _.-._        _.-._
@@ -19,10 +26,7 @@ to communicate with Handshake HSD via Stratum (hstratum)
 
 EPIC Thanks to chjj and the entire Handshake Project
 
-EPIC Thanks to the Handshake Alliance for being a solid team
-
 EPIC Thanks to Steven McKie for being my mentor/believing in me
-
 
 ### PREREQUISITES
 
@@ -38,7 +42,7 @@ Linux: OpenCL Drivers and dependencies install can be found in [./linux_installa
 
 ### INSTALLATION
 
-#### Command Line (mac/linux) :
+#### Command Line (mac/linux/windows) :
 
 ```npm install``` in this directory or 
 
@@ -46,15 +50,13 @@ Linux: OpenCL Drivers and dependencies install can be found in [./linux_installa
 
 double-click ```install.windows.bat``` (and make sure to run this as administrator). Windows: This will probably take 10 minutes to build.
 
-Note: When you run the intaller we will install a copy of hsd in this directory. It will probably fail/complain about unbound support which is fine. We won't be running HSD anyway, only including a couple of files for block header creation from actual HSD block data. You can ignore warnings/failures in this install.
 
-Windows folks: If you didnt double click ```install.windows.bat``` youll need to run the following commands in the repo root (make sure to use admin privileges to the terminal) :
-```npm install --global --production windows-build-tools && npm config set msvs_version 2017 --global``` followed by your ```npm install```
+Windows folks: If you didnt double click ```install.windows.bat``` youll need to run the following commands in the repo root: 
+```npm install```
 
 Windows may also need to add the following two items added to the ```Path``` environment variable:
 ```
 C:\Program Files\nodejs\node_modules\npm\bin
-C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin
 ```
 
 Once you have finished the installer, you can start the miner! Make sure to [start a fullnode](#runFullnode) if you intend on solo mining to 127.0.0.1 to your own hsd fullnode. 
@@ -100,7 +102,7 @@ Required Items to have ready for configuration:
 Optional configuration items (just leave blank and hit enter if you dont know) :
 1. pool or solo node port (probably 3008)
 2. the stratum password (optional)
-3. the wallet you want to mine to (pool only)
+3. (pool only) pool difficulty (1024 minumum on 6block, 512 minumum on hnspool), or set to -1 for variable difficulty
 
 
 #### Mining FAQ:

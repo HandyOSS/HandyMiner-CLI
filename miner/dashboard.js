@@ -1118,8 +1118,8 @@ class CLIDashboard{
 	  	'Started: \x1b[36m'+this.statsData['started'].format('MMM-DD HH:mm')+'\x1b[0m',
 	  	'Rig Hashrate: \x1b[36m'+(numeral(this.statsData['hashrate']).format('0.0b').replace('B','H'))+'\x1b[0m',
 	  	'Avg Hashrate: \x1b[36m'+(numeral(this.statsData['hashrate120']).format('0.0b').replace('B','H'))+'\x1b[0m',
-	  	'Block Target: \x1b[36m0x'+(this.statsData.target.slice(0,32))+'\x1b[0m',
-	  	'Difficulty: \x1b[36m'+(this.statsData.difficulty)+'\x1b[0m'
+	  	'Target: \x1b[36m0x'+(this.statsData.target.slice(0,32))+'\x1b[0m',
+	  	'Difficulty: \x1b[36m'+(numeral(this.statsData.difficulty).format('0.0b').replace('B',''))+'\x1b[0m'
 	  ];
 	  
 	  this.statsBox.logLines = [];
@@ -1427,7 +1427,7 @@ class CLIDashboard{
 	  	'Last Share: \x1b[36mnone\x1b[0m',
 	  	'Started: \x1b[36m'+moment().format('MMM-DD HH:mm')+'\x1b[0m',
 	  	'Rig Hashrate:\x1b[36m---MH\x1b[0m',
-	  	'Block Target: \x1b[36m---\x1b[0m',
+	  	'Target: \x1b[36m---\x1b[0m',
 	  	'Difficulty: \x1b[36m---\x1b[0m'
 	  ];//'Shares: **20**\nErrors: **1**\nLast Share: **'+moment().format('MMM-DD HH:mm')+'**\nStarted: **'+moment().subtract(1,'day').format('MMM-DD HH:mm')+'**\nCurrent Block: **1500**\nDifficulty: **1.2e5**';
 	  statsData.map(d=>{
