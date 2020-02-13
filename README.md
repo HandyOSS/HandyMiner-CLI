@@ -7,9 +7,15 @@ HANDYMINER
 **Updates 02/11/2020::**
 - Now supporting variable pool difficulty by setting poolDifficulty to ```-1``` in your config.json
 - 6block and hnspool integration fully tested and supported
+- Benchmarks and other updated information will be added here as we obtain them from the community: http://shorturl.at/awxHV
 
-A simple wrapper for cBlake PoW-NG OpenCL Miner
-to communicate with Handshake HSD via Stratum Mining
+A simple wrapper for the Blake2bSHA3 (Handshake) PoW OpenCL Miner
+to communicate with Handshake HSD via Stratum Mining. 
+# Easy Installation
+       Easily installed on most rig configurations within minutes.
+       Simple GPU Configuration setup.
+       Nvidia GeForce 10хх, 16xx and 20xx series and AMD Radeon RX/Polaris/Vega cross-compatible.
+
 
 ```
        _.-._        _.-._
