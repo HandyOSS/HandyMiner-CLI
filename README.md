@@ -46,6 +46,11 @@ EPIC Thanks to Steven McKie for being my mentor/believing in me
 
 Linux: OpenCL Drivers and dependencies install can be found in [./linux_installation.md](./linux_installation.md)
 
+### HandyMiner Running with Dashboard Enabled
+
+![Imgur](https://i.imgur.com/0Y3Q5UZ.jpg)
+
+
 ### INSTALLATION
 
 #### Command Line (mac/linux/windows) :
