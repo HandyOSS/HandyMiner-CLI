@@ -2203,8 +2203,8 @@ if __name__ == '__main__':
         print(footerSpacer + footerString + footerSpacer, sep='')
         sys.exit(0)
 
-    if not checkAmdGpus(deviceList):
-        logging.warning('No AMD GPUs specified')
+    //if not checkAmdGpus(deviceList):
+        //logging.warning('No AMD GPUs specified')
 
     if len(sys.argv) == 1 or \
         len(sys.argv) == 2 and (args.alldevices or args.json) or \

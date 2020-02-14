@@ -336,7 +336,7 @@ class CLIDashboard{
 		})
 		proc.stderr.on('data',d=>{
 			this.hasNoRocm = true;
-			console.log('rocm not here??',d.toString('utf8'));
+			//console.log('rocm not here??',d.toString('utf8'));
 		})
 		proc.on('close',()=>{
 			let lines = procStr.split('\n');
