@@ -1,5 +1,7 @@
 HANDYMINER
 2019 Alex Smith <alex.smith@earthlab.tech>
+
+
 **HandyMiner Team Donation Address (HNS): hs1qwfpd5ukdwdew7tn7vdgtk0luglgckp3klj44f8**
 
 **HandyMiner Support Telegram Channel:**
