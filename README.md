@@ -4,6 +4,18 @@ HANDYMINER
 **HandyMiner Support Telegram Channel:**
 [t.me/handshakemining](t.me/handshakemining)
 
+**Upcoming Hashrates for HandyMiner-King Cobra Release (Coming Soon):**
+
+|  Hashing Algorithm 	|   Maker	|   Model	|  Avg. Hashrate	|  Windows/Linux/MacOS 	|
+|---	|---	|---	|---	|---	|
+|   Handshake(Blake2bSHA3)	|  AMD 	|  Radeon VII|   380mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  5700XT|   340mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  Vega 64|   558mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   558mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   436mh	| Yes	
+
+
+
 **Updates 02/11/2020::**
 - Now supporting variable pool difficulty by setting poolDifficulty to ```-1``` in your config.json
 - 6block and hnspool integration fully tested and supported
