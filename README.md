@@ -10,7 +10,9 @@ HANDYMINER
 |---	|---	|---	|---	|---	|
 |   Handshake(Blake2bSHA3)	|  AMD 	|  Radeon VII|   380mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  AMD 	|  5700XT|   340mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  Vega 64|   558mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  Vega 64|   Pending	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 580|   Pending	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 470|   Pending	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   558mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   436mh	| Yes	
 
