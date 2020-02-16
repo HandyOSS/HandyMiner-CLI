@@ -534,7 +534,7 @@ class CLIDashboard{
 							//ok is it the same then?
 							if(gpu.atiID == gpuID && strName.indexOf(gpu.info.name) >= 0){
 								//ok fair to say this is our match
-								this.gpus[key].data.temperature.push({temparature:parseFloat(tempGPU),time:moment().format('HH:mm')});
+								this.gpus[key].data.temperature.push({temperature:parseFloat(tempGPU),time:moment().format('HH:mm')});
 								this.gpus[key].data.fan.push({fans:parseFloat(fanPerc),time:moment().format('HH:mm')});
 								this.gpus[key].data.gpuCoreClock.push({clock:parseFloat(gpuClock),time:moment().format('HH:mm')});
 								this.gpus[key].data.gpuMemoryClock.push({clock:parseFloat(memClock),time:moment().format('HH:mm')});
