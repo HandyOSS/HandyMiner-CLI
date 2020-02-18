@@ -19,7 +19,7 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  AMD 	|  RX 470|   Pending	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   Pending	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   Pending	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  1080TI |   Pending	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  1080TI |   47mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  1070 |   Pending	| Yes	
 
 **King Cobra 0.0.1 Release 02/19/2020::**
