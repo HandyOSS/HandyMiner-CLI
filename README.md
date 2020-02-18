@@ -59,9 +59,11 @@ Linux: OpenCL Drivers and dependencies install can be found in [./linux_installa
 
 ## INSTALLATION
 
-#### Download Prebuilt ZIP :
+#### Download & Install the Prebuilt ZIP :
 
-[Releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
+[Download Latest from Releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
+
+**Note: un-zipping the full contents may take a bit.**
 
 #### OR BUILD YOURSELF 
 
@@ -98,7 +100,20 @@ Note: many windows terminals dont do text coloring or dashboards right with npm 
 node --max-old-space-size=8196 ./miner/dashboard.js
 ```
 
-Note: Mac users need to enter their password to use the dashboard utility. We're not doing anything weird, MacOS requires it to ask the system for temperature/fan information.
+**Note: Mac users need to enter their password to use the dashboard utility. We're not doing anything weird, MacOS requires it to ask the system for temperature/fan information.**
+
+If you have a user-permission error, you'll need to run these commands to get the dashboard running on MacOS Mojave/Catalina. CD into your HandyMiner directory (the folder you downloaded), then run:
+
+```
+chmod 755 dashboard.mac.command
+
+Double click dashboard.mac.command
+```
+To run the miner CLI without the dashboard, you can simply run this command from your HandyMiner folder:
+```
+sudo node mine.js
+```
+
 
 #### Mine blocks!
 
