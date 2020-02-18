@@ -102,6 +102,8 @@ node --max-old-space-size=8196 ./miner/dashboard.js
 
 **Note: Mac users need to enter their password to use the dashboard utility. We're not doing anything weird, MacOS requires it to ask the system for temperature/fan information.**
 
+![img](https://i.imgur.com/teYpH3Y.png)
+
 If you have a user-permission error, you'll need to run these commands to get the dashboard running on MacOS Mojave/Catalina. CD into your HandyMiner directory (the folder you downloaded), then run:
 
 ```
