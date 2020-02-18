@@ -112,6 +112,10 @@ Optional configuration items (just leave blank and hit enter if you dont know) :
 ## POOL SETTINGS
 
 #### F2POOL
+
+**stratum host**: hns.f2pool.com
+**stratum_port**: 6000
+
 non-registered: 
 **username**: wallet.workerName
 **password**: anything
@@ -122,10 +126,16 @@ registered:
 
 #### 6block
 
+**stratum host**: handshake.6block.com
+**stratum_port**: 7701
+
 **username**: username.workerName
 **password**: anything
 
 #### hnspool
+
+**stratum host**: stratum-us.hnspool.com
+**stratum_port**: 3001
 
 **username**: hnspool_registered_username
 **password**: hnspool_registered_password
