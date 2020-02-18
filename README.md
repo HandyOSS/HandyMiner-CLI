@@ -1,5 +1,5 @@
 HANDYMINER
-2019 Alex Smith <alex.smith@earthlab.tech>
+2020 Alex Smith <alex.smith@earthlab.tech>
 
 
 **HandyMiner Team Donation Address (HNS): hs1qwfpd5ukdwdew7tn7vdgtk0luglgckp3klj44f8**
@@ -20,10 +20,18 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   Pending	| Yes	
 
 
-**Updates 02/11/2020::**
+**King Cobra 0.0.1 Release 02/19/2020::**
+- **HUGE PERFORMANCE** improvements: variable 1-2x improvement for hashrates across Nvidia and AMD.
+- Fixed dashboard errors for Nvidia HandyMiner users.
+- Added support for F2Pool.
+- Fixed "high hash" errors affecting some miners on certain mining pools.
+- Improved Windows/MacOS installation packages and setup.
+- Signed tar.xz included under [releases](https://github.com/HandyMiner/HandyMiner-CLI/releases) so HandyMiner can be packaged elsewhere 
+- **Benchmarks and other updated information will be added here as we obtain them from the community**
+
+**Previous Release Updates::**
 - Now supporting variable pool difficulty by setting poolDifficulty to ```-1``` in your config.json
 - 6block and hnspool integration fully tested and supported
-- Benchmarks and other updated information will be added here as we obtain them from the community: http://shorturl.at/awxHV
 
 A simple wrapper for the Blake2bSHA3 (Handshake) PoW OpenCL Miner
 to communicate with Handshake HSD via Stratum Mining. 
@@ -39,11 +47,11 @@ to communicate with Handshake HSD via Stratum Mining.
 
 ## PREREQUISITES
 
-[node.js](https://nodejs.org) v10.4 - v11+-ish (whatever one has bigint support)
+[Node.js](https://nodejs.org) v10.4 - v11+-ish (whatever one has bigint support)
 
-(**windows**) [git bash](https://git-scm.com/downloads) A handy bash terminal, **install in Program Files/Git**
+(**Windows Users**) [Git Bash](https://git-scm.com/downloads) A handy bash terminal, **install in Program Files/Git**
 
-(optional) [docker](#dockerReminders) if you want to run your own fullnode to mine to with the provided utilities
+(optional) [Docker](#dockerReminders) if you want to run your own fullnode to mine to with the provided utilities
 
 Linux: OpenCL Drivers and dependencies install can be found in [./linux_installation.md](./linux_installation.md)
 
@@ -52,7 +60,7 @@ Linux: OpenCL Drivers and dependencies install can be found in [./linux_installa
 
 #### Download Prebuilt ZIP :
 
-[releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
+[Releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
 
 #### OR BUILD YOURSELF 
 
@@ -93,21 +101,21 @@ Note: Mac users need to enter their password to use the dashboard utility. We're
 
 #### Mine blocks!
 
-(Ctrl+C, q, or esc to stop the dashboard miner)
+(Ctrl+C, Q, or ESC to stop the dashboard miner)
 
 <a id="minerConfigurator"></a>
 ## MINER CONFIGURATOR
 
 The first time you run the miner, you will run through a configurator which will write a config to ./config.json. Should you want to reconfigure in the future, you can just run ```node configure.js``` in this directory. Alternately delete config.json and (re)start the miner.
 
-Required Items to have ready for configuration:
+Required items to have ready for configuration:
 
-0. host or IP address of the pool or solo node you mine to (127.0.0.1 for your local fullnode)
+0. Host or IP address of the pool or solo node you mine to (127.0.0.1 for your local fullnode)
 
 Optional configuration items (just leave blank and hit enter if you dont know) :
-1. pool or solo node port (probably 3008)
-2. the stratum password (optional)
-3. (pool only) pool difficulty (1024 minumum on 6block, 512 minumum on hnspool), or set to -1 for variable difficulty
+1. Pool or solo node port (probably 3008)
+2. The stratum password (optional)
+3. (Pool-mode only) pool difficulty (1024 minumum on 6block, 512 minumum on hnspool), or set to -1 for variable difficulty.
 
 ## POOL SETTINGS
 
@@ -148,7 +156,7 @@ registered:
 This means your fullnode is not running. Please [launch a fullnode](#runFullnode)  or mine to a pool IP address.
 
 2. I dont see all my GPUs listed in the configurator
-Use your arrow keys, the list is scrollable. Hit space to multi-select and Enter to goto the next step.
+Use your arrow keys, the list is scrollable. Hit space to multi-select and Enter to goto the next step. Also ensure that you're updated to the latest version AMD/Nvidia drivers, as older versions may not be recognized.
 
 3. We do not auto-start the fullnode for you here like we do in HandyMiner-GUI. However we made it easy here and its a [double click to start it](#runFullnode). 
 
@@ -166,7 +174,7 @@ There are some handy docker utilities in the folder ```./fullnode_utils``` which
 <a id="dockerReminders"></a>
 #### Docker Fullnode Reminders:
 1. Make sure you installed docker. PSA: you dont need to login to docker either, dont let them fool you [mac, hunt for the dmg link](https://docs.docker.com/docker-for-mac/release-notes/) [windows, hunt for the exe link](https://docs.docker.com/docker-for-windows/release-notes/) ). Even after you install it: you dont need to login in order to run this goodness.
-2. Make sure that you added your wallet address you'd like paid at to ```run.mac.command OR run.windows.bat OR run.sh (for production)``` or ```run.powng.mac.command OR run.powng.windows.bat OR run.powng.sh (for simnet)``` in the end of the command that looks like: ```"./run.sh hs1qu2zqenh8jdxvaqz7nwun4r3k32klmuf6ss2y9s simnet"```
+2. Make sure that you added your wallet address you'd like paid at to ```run.mac.command OR run.windows.bat OR run.sh (for production)``` or ```run.powng.mac.command OR run.powng.windows.bat OR run.powng.sh (for simnet)``` in the end of the command that looks like: ```"./run.sh hs1qu2zqenh8jdxvaqz7nwun4r3k32klmuf6ss2y9s"```
 
 #### Docker Fullnode FAQs:
 
