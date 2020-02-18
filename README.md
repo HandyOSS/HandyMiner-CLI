@@ -12,14 +12,14 @@ HANDYMINER
 
 |  Hashing Algorithm 	|   Maker	|   Model	|  Avg. Hashrate	|  Windows/Linux/MacOS 	|
 |---	|---	|---	|---	|---	|
-|   Handshake(Blake2bSHA3)	|  AMD 	|  Radeon VII|   Pending	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  5700XT|   Pending	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  Vega 64|   Pending	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 580|   Pending	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  Radeon VII|   384mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  5700XT|   303mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  Vega 64|   235mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 580|   149mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  AMD 	|  RX 470|   Pending	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   Pending	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   Pending	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  1080TI |   47mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   508mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   385mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  1080TI |   Pending	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  1070 |   Pending	| Yes	
 
 **King Cobra 0.0.1 Release 02/19/2020::**
