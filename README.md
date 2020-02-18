@@ -4,8 +4,9 @@ HANDYMINER
 
 **HandyMiner Team Donation Address (HNS): hs1qwfpd5ukdwdew7tn7vdgtk0luglgckp3klj44f8**
 
-**HandyMiner Support Telegram Channel:**
-[t.me/handshakemining](http://t.me/handshakemining)
+**HandyMiner Social Channels:**
+
+[HandyMiner Support Telegram](http://t.me/handshakemining); [Handshake Mining Discord](https://discord.gg/VMUneym)
 
 **Upcoming Hashrates for HandyMiner-King Cobra Release (Coming Soon):**
 
