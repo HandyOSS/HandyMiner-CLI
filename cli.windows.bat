@@ -1,0 +1,1 @@
+mode con: cols=150 lines=50 && "%PROGRAMFILES%\Git\bin\bash.exe" --login -i -c "node --max-old-space-size=8196 mine.js && sleep 3"

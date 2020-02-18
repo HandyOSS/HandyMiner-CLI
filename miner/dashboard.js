@@ -360,11 +360,7 @@ class CLIDashboard{
 		if(typeof this.gpus == "undefined"){
 			return false;
 		}
-		if(typeof this.linuxRocmInfo == "undefined"){
-			//--showproductname
-			this.getLinuxRocmNames();
-			//return;
-		}
+		
 		let hasNvidiaCardsPresent = false;
 		let hasAMDCardsPresent = false;
 		Object.keys(this.gpus).map(gpuKey=>{
@@ -378,6 +374,11 @@ class CLIDashboard{
 			}
 		});
 		if(hasAMDCardsPresent){
+			if(typeof this.linuxRocmInfo == "undefined"){
+				//--showproductname
+				this.getLinuxRocmNames();
+				//return;
+			}
 			let procAMD = spawn('./gpu_stats/linux/rocm-smi',['-a','--json'],{env:process.env});
 			procAMD.stdout.on('data',d=>{
 				strAMD += d.toString('utf8');

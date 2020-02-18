@@ -536,6 +536,7 @@ class HandyMiner {
           /*TODO: Implement hnspool adaptive difficulty when it is present in the response*/
           if(!this.isMGoing){
             if(!this.useStaticPoolDifficulty && this.config.mode == 'pool'){
+              let lastDiff = this.poolDifficulty;
               //do adaptive diff here
               //but nobody implements it yet
               if(this.host.toLowerCase().indexOf('hnspool') >= 0 || typeof d.params != 'object'){
@@ -551,7 +552,7 @@ class HandyMiner {
                 console.log("HANDY:: \x1b[36mSET DYNAMIC POOL DIFFICULTY TO "+this.poolDifficulty+"\x1b[0m");
               }
 
-              if(this.config.mode == 'pool'){
+              if(this.config.mode == 'pool' && (lastDiff != this.poolDifficulty)){
                 this.refreshAllJobs();
               }
             }
@@ -737,16 +738,15 @@ class HandyMiner {
                 }
               }
               else{
-
-                console.log('\x1b[36mSTRATUM EVENT LOG::\x1b[0m',d);
+                if(!process.env.HANDYRAW){
+                  console.log('\x1b[36mSTRATUM EVENT LOG::\x1b[0m',d);
+                }
               }
             }
             else if(process.env.HANDYRAW && Object.keys(d).length > 0 && !this.isMGoing && (this.config.mode == 'pool' && this.host.indexOf('6block') >= 0)){
               //we should let the dashboard know about the share
-              if(d.error[1] == 'high-hash'){
                 this.displayWin(d,true);
                 this.generateWork();
-              }
               
             }
           }
@@ -765,7 +765,7 @@ class HandyMiner {
     let expireTime = Math.floor(new Date().getTime()/1000)-(60*30); //30 mins ago
     Object.keys(this.workByHeaders).map(headerKey=>{
       let data = this.workByHeaders[headerKey];
-      let time = data.work.time;
+      let time = data.createdAt;//data.work.time;
       if(time < expireTime){
         oldKeys.push(headerKey);
       }
@@ -1670,7 +1670,8 @@ class HandyMiner {
         work:work,
         gpu:workObject.id,
         platform:workObject.platform,
-        intensity:workObject.intensity
+        intensity:workObject.intensity,
+        createdAt:new Date().getTime()/1000
       };
       _this.workByHeaders[work.header.toString('hex')] = _this.gpuDeviceBlocks[workObject.id+'_'+workObject.platform];
 
