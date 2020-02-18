@@ -1305,7 +1305,7 @@ class HandyMiner {
             submission.push(lastJob.work.jobID);
             submission.push(lastJob.nonce2);
             submission.push(lastJob.work.time.toString(16));
-            if(_this.config.mode == 'pool' && !_this.isMGoing && _this.config.host.indexOf('6block') >= 0){
+            if(_this.config.mode == 'pool' && !_this.isMGoing && (_this.config.host.indexOf('6block') >= 0 || _this.config.host.indexOf('f2pool') >= 0 )){
               //6block formats to length == 8
               submission.push(outJSON.nonce.slice(8,16));
             }

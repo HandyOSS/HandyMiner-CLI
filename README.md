@@ -109,6 +109,28 @@ Optional configuration items (just leave blank and hit enter if you dont know) :
 2. the stratum password (optional)
 3. (pool only) pool difficulty (1024 minumum on 6block, 512 minumum on hnspool), or set to -1 for variable difficulty
 
+## POOL SETTINGS
+
+#### F2POOL
+non-registered: 
+**username**: wallet.workerName
+**password**: anything
+
+registered:
+**username**: username.workerName
+**password**: anything
+
+#### 6block
+
+**username**: username.workerName
+**password**: anything
+
+#### hnspool
+
+**username**: hnspool_registered_username
+**password**: hnspool_registered_password
+
+
 
 #### Mining FAQ:
 
