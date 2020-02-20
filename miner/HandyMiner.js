@@ -1071,7 +1071,17 @@ class HandyMiner {
           return d.length > 1;
         }).map((d)=>{
           d = d.trim();
-          return JSON.parse(d);
+          let json = {};
+          try{
+            json = JSON.parse(d);
+          }
+          catch(err){
+            //stdout on new work confirm gettting broken by something on windows sometimes??
+            //catch and do nothing because its for display only
+          }
+          return json;
+        }).filter(json=>{
+          return Object.keys(json).length > 0;
         });
         parseLines(lastRespParams,rawLinesJSON);
       }
