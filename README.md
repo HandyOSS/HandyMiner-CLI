@@ -8,7 +8,7 @@ HANDYMINER
 
 [HandyMiner Support Telegram](http://t.me/handshakemining); [Handshake Mining Discord](https://discord.gg/VMUneym)
 
-**Current Hashrates for King Cobra 0.0.1:**
+**Current Hashrates for King Cobra 0.0.2:**
 [Download Latest from Releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
 
 
