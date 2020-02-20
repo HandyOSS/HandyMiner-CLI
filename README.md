@@ -25,7 +25,11 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  1050TI |   73mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  2070 |   271mh	| Yes	
 
-**King Cobra 0.0.1 Release 02/19/2020::**
+**King Cobra 0.0.2 Hotfix Release 02/20/2020::**
+- Fixed dashboard errors for certain Windows users where a JSON stdout output error would occur randomly and stop your miner. Please launch from this release version if you have this issue.
+- Other tiny bug fixes for further stability across platforms.
+
+**Previous Release Updates::**
 - **HUGE PERFORMANCE** improvements: variable 1-2x improvement for hashrates across Nvidia and AMD.
 - Fixed dashboard errors for Nvidia HandyMiner users.
 - Added support for F2Pool.
@@ -34,9 +38,6 @@ HANDYMINER
 - Signed tar.xz included under [releases](https://github.com/HandyMiner/HandyMiner-CLI/releases) so HandyMiner can be packaged elsewhere 
 - **Benchmarks and other updated information will be added here as we obtain them from the community**
 
-**Previous Release Updates::**
-- Now supporting variable pool difficulty by setting poolDifficulty to ```-1``` in your config.json
-- 6block and hnspool integration fully tested and supported
 
 A simple wrapper for the Blake2bSHA3 (Handshake) PoW OpenCL Miner
 to communicate with Handshake HSD via Stratum Mining. 
