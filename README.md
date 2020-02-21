@@ -36,6 +36,8 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  1080TI |   Pending	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  1050TI |   73mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  2070 |   271mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
 
 **King Cobra 0.0.3 Release 02/21/2020::**
 - Add support for Pool Flare
