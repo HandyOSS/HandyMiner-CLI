@@ -8,7 +8,7 @@ HANDYMINER
 [HandyMiner Support Telegram](http://t.me/handshakemining); [Handshake Mining Discord](https://discord.gg/VMUneym)
 
 
-**Links**
+**Quick Links**
 
 [Prerequisites and Installation](#buildInstructions)
 
