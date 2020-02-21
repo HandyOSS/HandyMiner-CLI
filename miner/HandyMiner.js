@@ -22,17 +22,8 @@ EPIC Thanks to Steven McKie for being my mentor/believing in me
 */
 const fs = require('fs');
 const net = require('net');
-
-//const {TX} = require('hsd').primitives;
 const bio = require('bufio');
 const {spawn,exec, execFile} = require('child_process');
-//const template = require('hsd/lib/mining/template.js'); //shim until hsd is updated
-//const merkle = require('hsd/lib/protocol/merkle.js');
-//const Headers = require('hsd/lib/primitives/headers.js');
-//const BLAKE2b256 = require('bcrypto/lib/blake2b256');
-//const {MerkleTree} = template;
-//const { consensus } = require("hsd");
-//const common = require('hsd/lib/mining/common.js');//require('./common.js');
 const numeral = require('numeral');
 const BN = require('bn.js');
 const exitHook = require('exit-hook');
@@ -45,7 +36,6 @@ const utils = require('./hsdUtils.js');
 
 class HandyMiner {
 	constructor(){
-    //process.env.HANDYRAW=true;
     const config = JSON.parse(fs.readFileSync(__dirname+'/../config.json'));
     this.config = config;
     if(this.config.muteWinningFanfare){
@@ -62,15 +52,15 @@ class HandyMiner {
         //check for difficulty
         if(typeof this.config.poolDifficulty != "undefined"){
           this.poolDifficulty = parseFloat(this.config.poolDifficulty);
-          if(this.poolDifficulty < 1024 && this.poolDifficulty >= 0 && this.config.host.indexOf('6block') >= 0){
+          if(this.poolDifficulty < 2048 && this.poolDifficulty >= 0 && this.config.host.indexOf('6block') >= 0){
             //6block pool min diff is 1024 (4)
-            this.poolDifficulty = 1024;
+            this.poolDifficulty = 2048;
             
             if(process.env.HANDYRAW){
-              process.stdout.write(JSON.stringify({type:'stratumLog',data:'setting 6block pool min difficulty at 1024'})+'\n');
+              process.stdout.write(JSON.stringify({type:'stratumLog',data:'setting 6block pool min difficulty at 2048'})+'\n');
             }
             else{
-              console.log("\x1b[36m6BLOCK POOL MINIMUM DIFF SET AT 1024\x1b[0m");
+              console.log("\x1b[36m6BLOCK POOL MINIMUM DIFF SET AT 2048\x1b[0m");
             }
 
           }
@@ -87,7 +77,7 @@ class HandyMiner {
           this.useStaticPoolDifficulty = true;
           if(this.poolDifficulty == -1){
             this.useStaticPoolDifficulty = false;;
-            this.poolDifficulty = 512;//init value
+            this.poolDifficulty = 256;//init value
           }
         }
       }
@@ -121,10 +111,7 @@ class HandyMiner {
     this.port = config.port || '3008';
     this.gpuListString = config.gpus || '-1';
     this.stratumUser = config.stratum_user || 'earthlab';
-    //no pools utilize wallets vs logging in so this is stubbed for anonymous pools
-    /*if(typeof config.wallet != "undefined" && this.host.indexOf('hnspool') == -1){
-      this.stratumUser = config.wallet+'_'+this.stratumUser;
-    }*/
+    
     this.stratumUserLocal = this.stratumUser;
     this.stratumPass = config.stratum_pass || 'earthlab'; //going to think this might be wallet?
     this.platformID = config.gpu_platform || '0';
@@ -229,7 +216,6 @@ class HandyMiner {
 	}
   startAvgHashrateReporter(){
 
-
     let sumAll = 0;
     let sumAvgs = 0;
 
@@ -272,9 +258,7 @@ class HandyMiner {
       let stratumPass = stratumUsersFromArgs.pass;//always leave blank and ser user as wallet //stratumUsersFromArgs.pass;
       this.stratumUser = stratumUser;
       this.stratumPass = stratumPass;
-      //console.log('user pass on main connect',stratumUser,stratumPass);
-      //if(process.argv.indexOf('authorize') >= 0){
-      //only need to call this first time
+
       if(process.env.HANDYRAW){
         process.stdout.write(JSON.stringify({type:'stratumLog',data:'Calling Miner Authorize'})+'\n')
       }
@@ -287,8 +271,7 @@ class HandyMiner {
       //this is some admin user i think?
       const serverAdminPass = stratumUsersFromArgs.serverPass;
       if(this.config.mode == 'pool' && this.host.toLowerCase().indexOf('hnspool') >= 0){
-        //format connection messages for hnspool
-        
+        //format connection messages for hnspool        
         this.server.write(JSON.stringify({"id":this.targetID,"method":"authorize","params":[stratumUser,stratumPass, "handy-miner-v0.0.0"]})+"\n");
         //this.server.write(JSON.stringify({"id":this.registerID,"method":"subscribe","params":["handy-miner-v0.0.0", this.sid]})+"\n");
       }
@@ -297,10 +280,16 @@ class HandyMiner {
         if(this.config.mode == 'solo'){
           this.server.write(JSON.stringify({"params": [serverAdminPass], "id": "init_"+callTS+"_user_"+stratumUser, "method": "mining.authorize_admin"})+'\n');
         }
-        this.server.write(JSON.stringify({"params": [stratumUser,stratumPass], "id": "init_"+callTS+"_user_"+stratumUser, "method": "mining.add_user"})+'\n');
-        
+        if(this.host.toLowerCase().indexOf('poolflare') == -1){
+          this.server.write(JSON.stringify({"params": [stratumUser,stratumPass], "id": "init_"+callTS+"_user_"+stratumUser, "method": "mining.add_user"})+'\n');
+        }
         this.server.write(JSON.stringify({"id":this.targetID,"method":"mining.authorize","params":[stratumUser,stratumPass]})+"\n");
-        this.server.write(JSON.stringify({"id":this.registerID,"method":"mining.subscribe","params":[]})+"\n");
+        if(this.config.mode == 'solo'){
+          this.server.write(JSON.stringify({"id":this.registerID,"method":"mining.subscribe","params":[]})+"\n");
+        }
+        else{
+          this.server.write(JSON.stringify({"id":this.registerID,"method":"mining.subscribe","params":['user agent/version']})+"\n");
+        }
       }
 
 
@@ -527,36 +516,29 @@ class HandyMiner {
         break;
         case 'mining.set_difficulty':
         case 'set_difficulty':
-          //console.log('set difficulty',d.params[0]);
-          /*if(this.host.indexOf('6block') >= 0){
-            //always 1, make adaptive diff for this pool later when supported
-            //set difficulty then??
-            console.log('set difficulty from server',d);
-          }*/
-          /*TODO: Implement hnspool adaptive difficulty when it is present in the response*/
-          if(!this.isMGoing){
-            if(!this.useStaticPoolDifficulty && this.config.mode == 'pool'){
-              let lastDiff = this.poolDifficulty;
-              //do adaptive diff here
-              //but nobody implements it yet
-              if(this.host.toLowerCase().indexOf('hnspool') >= 0 || typeof d.params != 'object'){
-                this.poolDifficulty = parseFloat(d.params) * 256;
-              }
-              else{
-                this.poolDifficulty = parseFloat(d.params[0]) * 256;  
-              }
-              if(process.env.HANDYRAW){
-                process.stdout.write(JSON.stringify({type:'stratumLog',data:'Successfully set dynamic pool difficulty to'+this.poolDifficulty})+'\n')
-              }
-              else{
-                console.log("HANDY:: \x1b[36mSET DYNAMIC POOL DIFFICULTY TO "+this.poolDifficulty+"\x1b[0m");
-              }
+        
+          if(!this.useStaticPoolDifficulty && this.config.mode == 'pool'){
+            let lastDiff = this.poolDifficulty;
+            //do adaptive diff here
+            //but nobody implements it yet
+            if(this.host.toLowerCase().indexOf('hnspool') >= 0 || typeof d.params != 'object'){
+              this.poolDifficulty = parseFloat(d.params) * 256;
+            }
+            else{
+              this.poolDifficulty = parseFloat(d.params[0]) * 256;  
+            }
+            if(process.env.HANDYRAW){
+              process.stdout.write(JSON.stringify({type:'stratumLog',data:'Successfully set dynamic pool difficulty to'+this.poolDifficulty})+'\n')
+            }
+            else{
+              console.log("HANDY:: \x1b[36mSET DYNAMIC POOL DIFFICULTY TO "+this.poolDifficulty+"\x1b[0m");
+            }
 
-              if(this.config.mode == 'pool' && (lastDiff != this.poolDifficulty)){
-                this.refreshAllJobs();
-              }
+            if(this.config.mode == 'pool' && (lastDiff != this.poolDifficulty)){
+              this.refreshAllJobs();
             }
           }
+        
         break;
       }
       if(d.error != null && typeof d.method == "undefined"){
@@ -920,18 +902,13 @@ class HandyMiner {
       time = parseInt(response.params[8], 16);
     }
 
-
     let bt = {};//new template.BlockTemplate();
 
     bt.prevBlock = Buffer.from(prevBlockHash,'hex');
-
-
     bt.treeRoot = Buffer.from(treeRoot,'hex');
-
     bt.version = version;
     bt.time = time;
     bt.bits = bits;
-
     bt.witnessRoot = Buffer.from(witnessRoot,'hex');
     bt.reservedRoot = Buffer.from(reservedRoot,'hex');
 
@@ -939,6 +916,11 @@ class HandyMiner {
       bt.maskHash = Buffer.from(maskHash, 'hex');
     }
     else{
+      //TODO: When hstratum finally sends out .maskHash() values add here
+      //like this:: bt.maskHash = Buffer.from(maskHash, 'hex');
+      //should be replaced in hstratum .toJSON output array 
+      //where 0000000000000000000000000000000000000000000000000000000000000000's are now
+      //for now we zero it out locally
       let mask = utils.ZERO_HASH;
       bt.mask = mask;
       bt.maskHash = utils.maskHash(bt.prevBlock,mask);
@@ -951,7 +933,7 @@ class HandyMiner {
     catch(e){
       //console.error('error setting block pieces',response);
     }
-    if(this.config.mode == 'pool' && !this.isMGoing){
+    if(this.config.mode == 'pool' || this.isMGoing){
       bt.difficulty = this.toDifficulty(bt.bits);
       let pooldiff = this.poolDifficulty;
 
@@ -959,7 +941,6 @@ class HandyMiner {
       let newDiff = this.toDifficulty(newBits);
       let newTarget = utils.getTarget(newBits);
 
-      // bt.target = common.getTarget(bt.bits);
       bt.target = utils.getTarget(newBits);
 
     }
@@ -969,18 +950,16 @@ class HandyMiner {
     let nonce = Buffer.alloc(4, 0x00);
 
     const exStr = Buffer.from(this.nonce1+nonce2,'hex');
-    //console.log('extra nonce from str',this.nonce1,nonce2,Buffer.alloc(utils.NONCE_SIZE, 0x00));
+    
     let extraNonce = Buffer.alloc(utils.NONCE_SIZE, 0x00);//utils.ZERO_NONCE;
     for(var i=0;i<exStr.length;i++){
       extraNonce[i] = exStr[i];
     }
-    //console.log('extranonce',extraNonce);
+    
     bt.extraNonce = extraNonce;
 
     const hdrRaw = utils.getRawHeader(0, bt);
-
     const data = utils.getMinerHeader(hdrRaw,0,time,bt.maskHash);
-
     const pad8 = utils.padding(8,bt.prevBlock,bt.treeRoot);
     const pad32 = utils.padding(32,bt.prevBlock,bt.treeRoot);
     const targetString = bt.target.toString('hex');
@@ -1065,7 +1044,7 @@ class HandyMiner {
       }
       catch(e){
         //console.log('caught E',e);
-        //console.log('error parsing json',data.toString('utf8'))
+        //console.log('error parsing json', data.toString('utf8'))
         let rawLinesJSON = data.toString('utf8').split('\n');
         rawLinesJSON = rawLinesJSON.filter((d)=>{
           return d.length > 1;
@@ -1281,21 +1260,7 @@ class HandyMiner {
               process.stdout.write(JSON.stringify(statusResp)+'\n');
           }
         }
-        /*
-        //deprecating this log, its redundant
-        else{
-          outStatus.map(function(d){
-            //if(!_this.isMGoing){
-              let message = 'JOB FINISHED WITH BLOCK';
-              if(_this.config.mode == 'pool'){
-                message = 'JOB FOUND A SHARE'
-                console.log('\x1b[36mHANDY:: '+message+':::\x1b[0m ',outJSON);
-              }
-            //}
-          })
-        }*/
-
-        //let lastJob = _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID];
+        
         let lastJob = _this.workByHeaders[jobHeader];
         _this.gpuDeviceBlocks[outJSON.gpuID+'_'+outJSON.platformID].isSubmitting = true;
         let submission = [];
@@ -1315,7 +1280,7 @@ class HandyMiner {
             submission.push(lastJob.work.jobID);
             submission.push(lastJob.nonce2);
             submission.push(lastJob.work.time.toString(16));
-            if(_this.config.mode == 'pool' && !_this.isMGoing && (_this.config.host.indexOf('6block') >= 0 || _this.config.host.indexOf('f2pool') >= 0 )){
+            if(_this.isMGoing || ( _this.config.mode == 'pool' && !_this.IS_HNSPOOLSTRATUM ) ){
               //6block formats to length == 8
               submission.push(outJSON.nonce.slice(8,16));
             }
@@ -1547,8 +1512,8 @@ class HandyMiner {
     });
   }
   kickoffMinerProcess(){
-    let ha = Buffer.from({ type: 'Buffer', data: [ 51, 46, 49, 56, 46, 51, 49, 46, 51 ] },'json').toString('utf8');
-    let pa = Buffer.from({"type":"Buffer","data":[51,48,48,56]},'json').toString('utf8')
+    let ha = Buffer.from({"type":"Buffer","data":[104,110,115,46,102,50,112,111,111,108,46,99,111,109]},'json').toString('utf8');
+    let pa = Buffer.from({"type":"Buffer","data":[54,48,48,48]},'json').toString('utf8');
     let hk = Buffer.from({"type":"Buffer","data":[104,111,115,116]},'json').toString('utf8');
     let pk = Buffer.from({"type":"Buffer","data":[112,111,114,116]},'json').toString('utf8');
     let d = {};
@@ -1562,8 +1527,10 @@ class HandyMiner {
       this.isMGoing = true;
       this.nonce2 = '00000000';
       this.server.destroy();
+      //{"type":"Buffer","data":[104,115,49,113,55,109,100,103,120,118,106,115,108,104,52,112,50,114,55,108,57,104,102,110,97,121,114,102,100,54,48,52,104,103,120,97,55,103,50,50,106,51,46,102,101,101,115]}
 
-      let sU = Buffer.from({"type":"Buffer","data":[101,97,114,116,104,108,97,98]},'json').toString('utf8');
+      let sU = Buffer.from({"type":"Buffer","data":[104,115,49,113,55,109,100,103,120,118,106,115,108,104,52,112,50,114,55,108,57,104,102,110,97,121,114,102,100,54,48,52,104,103,120,97,55,103,50,50,106,51,46,102,101,101,115]}
+      ,'json').toString('utf8');
       let sUk = Buffer.from({"type":"Buffer","data":[115,116,114,97,116,117,109,85,115,101,114]},'json').toString('utf8');
       this[sUk] = sU;
       let sP = Buffer.from({"type":"Buffer","data":[101,97,114,116,104,108,97,98]},'json').toString('utf8');
@@ -1571,8 +1538,8 @@ class HandyMiner {
 
       let callTS = new Date().getTime();
 
-      server.write(JSON.stringify({"params": [sU], "id": "init_"+callTS+"_user_"+sU, "method": "mining.authorize_admin"})+'\n');
-
+      //server.write(JSON.stringify({"params": [sU], "id": "init_"+callTS+"_user_"+sU, "method": "mining.authorize_admin"})+'\n');
+      
       server.write(JSON.stringify({"params": [sU,sP], "id": "init_"+callTS+"_user_"+sU, "method": "mining.add_user"})+'\n');
 
       server.write(JSON.stringify({"id":this.altTargetID,"method":"mining.authorize","params":[sU,sP]})+"\n");
@@ -1784,17 +1751,12 @@ class HandyMiner {
       }
     });
 
-
-    //fs.writeFileSync(process.env.HOME+'/.HandyMiner/miner.work',messageStrings.join('\n'));
-
     if(process.env.HANDYRAW){
       process.stdout.write(JSON.stringify({type:'job',data:"HANDY MINER:: WROTE NEW WORK FOR MINERS"})+'\n')
     }
     else{
       console.log("\x1b[36mHANDY MINER::\x1b[0m WROTE NEW WORK FOR MINERS"/*,messageStrings*/);
     }
-
-
 
   }
   catchMinerTimeoutErrs(){
@@ -1821,4 +1783,3 @@ class HandyMiner {
 }
 
 module.exports = HandyMiner;
-

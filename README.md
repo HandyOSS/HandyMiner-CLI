@@ -1,16 +1,28 @@
 HANDYMINER
 2020 Alex Smith <alex.smith@earthlab.tech>
 
-
 **HandyMiner Team Donation Address (HNS): hs1qwfpd5ukdwdew7tn7vdgtk0luglgckp3klj44f8**
 
 **HandyMiner Social Channels:**
 
 [HandyMiner Support Telegram](http://t.me/handshakemining); [Handshake Mining Discord](https://discord.gg/VMUneym)
 
-**Current Hashrates for King Cobra 0.0.2:**
+
+**Links**
+
+[Prerequisites and Installation](#buildInstructions)
+
 [Download Latest from Releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
 
+[Pool Settings](#poolParameters)
+
+[Running](#running)
+
+[Configurator](#minerConfigurator)
+
+[FAQ](#faq)
+
+**Current Hashrates for King Cobra 0.0.3:**
 
 |  Hashing Algorithm 	|   Maker	|   Model	|  Avg. Hashrate	|  Windows/Linux/MacOS 	|
 |---	|---	|---	|---	|---	|
@@ -25,9 +37,11 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  1050TI |   73mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  2070 |   271mh	| Yes	
 
-**King Cobra 0.0.2 Hotfix Release 02/20/2020::**
-- Fixed dashboard errors for certain Windows users where a JSON stdout output error would occur randomly and stop your miner. Please launch from this release version if you have this issue.
-- Other tiny bug fixes for further stability across platforms.
+**King Cobra 0.0.3 Release 02/21/2020::**
+- Add support for Pool Flare
+- Fix memory leak in dashboard chart
+- Mac permissions fix
+- Update sample config
 
 **Previous Release Updates::**
 - **HUGE PERFORMANCE** improvements: variable 1-2x improvement for hashrates across Nvidia and AMD.
@@ -50,7 +64,7 @@ to communicate with Handshake HSD via Stratum Mining.
 
 ![Imgur](https://i.imgur.com/0Y3Q5UZ.jpg)
 
-
+<a id="buildInstructions"></a>
 ## PREREQUISITES
 
 [Node.js](https://nodejs.org) v10.4 - v11+-ish (whatever one has bigint support)
@@ -83,12 +97,12 @@ double-click ```install.windows.bat``` (and make sure to run this as administrat
 Windows folks: If you didnt double click ```install.windows.bat``` youll need to run the following commands in the repo root: 
 ```npm install```
 
-
+<a id="running"></a>
 ## THE POINT
 
 Non-terminal users: simply double click ```(windows) dashboard.windows.bat``` or ```(mac) dashboard.mac.command``` or ```(linux) dashboard.sh``` files.
 
-**Note:** The first time you launch will run you thru the [miner configurator](#configurator).
+**Note:** The first time you launch will run you thru the [miner configurator](#minerConfigurator).
 
 Launch the miner in terminal **in a bash terminal (windows: git-bash)** like:
 ```
@@ -107,20 +121,7 @@ node --max-old-space-size=8196 ./miner/dashboard.js
 
 **Note: Mac users need to enter their password to use the dashboard utility. We're not doing anything weird, MacOS requires it to ask the system for temperature/fan information.**
 
-![img](https://i.imgur.com/teYpH3Y.png)
-
-If you have a user-permission error, you'll need to run these commands to get the dashboard running on MacOS Mojave/Catalina. CD into your HandyMiner directory (the folder you downloaded), then run:
-
-```
-chmod 755 dashboard.mac.command
-
-Double click dashboard.mac.command
-```
-To run the miner CLI without the dashboard, you can simply run this command from your HandyMiner folder:
-```
-sudo node mine.js
-```
-
+[Mac FAQs](#macFAQ)
 
 #### Mine blocks!
 
@@ -140,6 +141,7 @@ Optional configuration items (just leave blank and hit enter if you dont know) :
 2. The stratum password (optional)
 3. (Pool-mode only) pool difficulty (1024 minumum on 6block, 512 minumum on hnspool), or set to -1 for variable difficulty.
 
+<a id="poolParameters"></a>
 ## POOL SETTINGS
 
 #### F2POOL
@@ -163,6 +165,14 @@ registered:
 **username**: username.workerName
 **password**: anything
 
+#### PoolFlare
+
+**stratum host**: hns-us.ss.poolflare.com
+**stratum_port**: 3355
+
+**username**: wallet.workerName
+**password**: anything
+
 #### hnspool
 
 **stratum host**: stratum-us.hnspool.com
@@ -172,8 +182,8 @@ registered:
 **password**: hnspool_registered_password
 
 
-
-#### Mining FAQ:
+<a id="faq"></a>
+## Mining FAQ:
 
 1. I started the dashboard and it says connection to 127.0.0.1 is timed out and trying again in 20s. 
 This means your fullnode is not running. Please [launch a fullnode](#runFullnode)  or mine to a pool IP address.
@@ -187,7 +197,23 @@ Use your arrow keys, the list is scrollable. Hit space to multi-select and Enter
 ```
 C:\Program Files\nodejs\node_modules\npm\bin
 ```
+<a id="macFAQ"></a>
 
+#### MAC FAQ:
+
+![img](https://i.imgur.com/teYpH3Y.png)
+
+If you have a user-permission error, you'll need to run these commands to get the dashboard running on MacOS Mojave/Catalina. CD into your HandyMiner directory (the folder you downloaded), then run:
+
+```
+chmod 755 dashboard.mac.command
+
+Double click dashboard.mac.command
+```
+To run the miner CLI without the dashboard, you can simply run this command from your HandyMiner folder:
+```
+sudo node mine.js
+```
 
 <a id="runFullnode"></a>
 ### Running an HSD Fullnode for solo mining

@@ -1058,6 +1058,7 @@ class CLIDashboard{
 		    let yData2 = [];
 		    if(hashData.length > this.linechartTicksMax){
 		    	hashData = hashData.slice(hashData.length-(this.linechartTicksMax/2),hashData.length);
+		    	this.gpus[gpuKey].data.hashrate = hashData;
 		    }
 		   	if(hd120.length > this.linechartTicksMax){
 		    	hd120 = hd120.slice(hd120.length-(this.linechartTicksMax/2),hd120.length);

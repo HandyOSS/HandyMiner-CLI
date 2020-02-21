@@ -1,13 +1,13 @@
 {
 	"gpus":"0",
 	"gpu_platform":"1",
-	"gpu_mfg":"nvidia",
+	"gpu_mfg":"unikern",
 	"intensity":11,
-	"host":"3.14.224.108",
-	"port":"3008",
-	"stratum_user":"earthlabWINDOWSTEST",
+	"host":"hns.f2pool.com",
+	"port":6000,
+	"stratum_user":"ts1qlt6tgdmyplg4xtgq2hpc0ek842w5vkrqpu9jjm.myWorkerName",
 	"stratum_pass":"earthlab",
-	"wallet":"ts1qlt6tgdmyplg4xtgq2hpc0ek842w5vkrqpu9jjm",
-	"mode":"solo",
-	"poolDifficulty":10
+	"mode":"pool",
+	"poolDifficulty": -1,
+  	"muteWinningFanfare": false
 }
