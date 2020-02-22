@@ -785,43 +785,46 @@ class CLIDashboard{
 
 				let parts = smcData.split('**** SMC sensors ****')[1];
 				let isSMCDone = false
-				parts.split('\n').map(line=>{
-					if(line.indexOf('****') >= 0 || isSMCDone){
-						//section is done
-						isSMCDone = true;
-						return false;
-					}
-					if(line.indexOf('GPU') == 0){
-						if(line.indexOf('temperature') >= 0){
-							//is temp
+				if (parts !== undefined) {
+					parts.split('\n').map(line=>{
+						if(line.indexOf('****') >= 0 || isSMCDone){
+							//section is done
+							isSMCDone = true;
+							return false;
+						}
+						if(line.indexOf('GPU') == 0){
+							if(line.indexOf('temperature') >= 0){
+								//is temp
+								if(typeof this.gpus != "undefined"){
+									Object.keys(this.gpus).map(key=>{
+										let gpuD = this.gpus[key];
+										let tempD = {temperature:parseFloat(line.split(':')[1].replace('C','').trim()),time:moment().format('HH:mm')};
+	
+										/*console.log('');
+										console.log('tempD',tempD)*/
+										this.gpus[key].data.temperature.push(tempD);
+									})
+								}
+							}
+							
+						}
+						if(line.indexOf('Fan') >= 0){
+							//its the fan speed
+							let fanSpeed = line.split(':')[1].replace('rpm','').trim();
 							if(typeof this.gpus != "undefined"){
 								Object.keys(this.gpus).map(key=>{
 									let gpuD = this.gpus[key];
-									let tempD = {temperature:parseFloat(line.split(':')[1].replace('C','').trim()),time:moment().format('HH:mm')};
-
+									let fanD = {fans:Math.floor(parseFloat(fanSpeed)/6200*100),time:moment().format('HH:mm')};
+									//console.log('fan data isset',fanD);
 									/*console.log('');
 									console.log('tempD',tempD)*/
-									this.gpus[key].data.temperature.push(tempD);
+									this.gpus[key].data.fan.push(fanD);
 								})
 							}
 						}
-						
-					}
-					if(line.indexOf('Fan') >= 0){
-						//its the fan speed
-						let fanSpeed = line.split(':')[1].replace('rpm','').trim();
-						if(typeof this.gpus != "undefined"){
-							Object.keys(this.gpus).map(key=>{
-								let gpuD = this.gpus[key];
-								let fanD = {fans:Math.floor(parseFloat(fanSpeed)/6200*100),time:moment().format('HH:mm')};
-								//console.log('fan data isset',fanD);
-								/*console.log('');
-								console.log('tempD',tempD)*/
-								this.gpus[key].data.fan.push(fanD);
-							})
-						}
-					}
-				});
+					});
+				}
+
 				let powerParts = smcData.split('**** Processor usage ****')[1].split('\n');
 				let hasFoundPowerPart = 0;
 				let powerW = 0;
