@@ -27,15 +27,16 @@ HANDYMINER
 |  Hashing Algorithm 	|   Maker	|   Model	|  Avg. Hashrate	|  Windows/Linux/MacOS 	|
 |---	|---	|---	|---	|---	|
 |   Handshake(Blake2bSHA3)	|  AMD 	|  Radeon VII|   384mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  5700XT|   303mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 5700XT|   303mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  AMD 	|  Vega 64|   235mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  AMD 	|  RX 580|   149mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  5700 (non xt)|  250mh 	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 5700 (non xt)|  250mh 	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 570 |   157mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   508mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   385mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  1080TI |   Pending	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  1050TI |   73mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  2070 |   271mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2070 |   271mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1080TI |   Pending	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1050TI |   73mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
 
