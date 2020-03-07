@@ -16,7 +16,11 @@ class HandyConfigurator{
 		this._wallet;
 		this._muteVictoryFanfare = false;
 		this._intensity = 10;
-		this._poolDifficulty = 1024;
+		this._poolDifficulty = -1;
+		this._canEnableHangryMode = false;
+		process.on('SIGINT', function() {
+		    process.exit();
+		});
 	}
 	configure(callback){
 				
@@ -96,6 +100,7 @@ class HandyConfigurator{
 			  		return (b.platform-a.platform);
 			  	}).map(d=>{
 			  		let name = d.name;
+			  		let hangryModePotential = false;
 			  		if(d.name == 'Ellesmere'){
 		              name = 'AMD RX**0';
 		            }
@@ -104,12 +109,19 @@ class HandyConfigurator{
 		            }
 		      	    if(d.name == 'gfx906'){
 		      	      name = 'AMD Vega-II';
+		      	      hangryModePotential = true;
 		      	    }
 		            if(d.name == 'gfx1010'){
 		              name = 'AMD Radeon 5700 XT';
+		              hangryModePotential = true;
 		            }
 		            if(d.name == 'gfx1000'){
 		              name = 'AMD Radeon 5700';
+		              hangryModePotential = true;
+		            }
+		            if(process.platform.indexOf('darwin') == -1 && hangryModePotential){
+		            	//we are not mac, maybe enable hangry mode for 5700 and VII
+		            	this._canEnableHangryMode = true;
 		            }
 		            if(d.name.indexOf('Intel') >= 0 && d.name.indexOf('HD Graphics') >= 0){
 		            	//format warning here
@@ -146,7 +158,7 @@ class HandyConfigurator{
 				    },
 				    {
 				    	name:'stratumUser',
-				    	message:'Stratum User: (optional)'
+				    	message:'Stratum User: (wallet.workerName)'
 				    },
 				    {
 				    	name:'stratumPass',
@@ -245,24 +257,30 @@ class HandyConfigurator{
 						"poolDifficulty":this._poolDifficulty,
 						"muteWinningFanfare":this._muteVictoryFanfare
 				  	}
-				  	if(this._miningMode == 'pool'){
+
+
+				  	if(this._canEnableHangryMode){
 				  		inquirer.prompt([{
-				  			name:'pooldiff',
-				  			message:'Pool Difficulty (1024, set to -1 for dynamic)'
-				  		}]).then(pda=>{
-				  			//console.log('pool diff answer',pda.pooldiff);
-				  			if(pda.pooldiff != ''){
-				  				config.poolDifficulty = parseInt(pda.pooldiff);
+				  			name:'hangryMode',
+							type:'list',
+				  			message:'Would you like to enable experimental HANGRY MODE for AMD VII/5700s? Hangry mode will enable higher hash rate, however it uses more energy and can make rigs with many VII/5700s crash.',
+				  			choices:[
+					  			'yes',
+					  			'no'
+				  			]
+				  		}]).then(hangryAnswer=>{
+				  			
+				  			if(hangryAnswer.hangryMode == 'yes'){
+				  				config.enableHangryMode = true;
 				  			}
-				  			this.saveConfig(config, callback);
-				  			//console.info('Answer:', JSON.stringify(config,null,2));
-				  		});
-				  		
+				  			this.checkPoolMode(config,callback);
+				  		})
 				  	}
 				  	else{
-				  		this.saveConfig(config, callback);
-				  		//console.info('Answer:', JSON.stringify(config,null,2));
+				  		this.checkPoolMode(config,callback);
 				  	}
+
+				  	
 
 				  	//now prompt for pool info
 				  	//promptPoolInfo();
@@ -273,6 +291,30 @@ class HandyConfigurator{
 		  });
 		}
 
+	}
+	checkPoolMode(config,callback){
+
+  	if(this._miningMode == 'pool'){
+  		/*inquirer.prompt([{
+  			name:'pooldiff',
+  			message:'Pool Difficulty (-1 for most pools)'
+  		}]).then(pda=>{
+  			//console.log('pool diff answer',pda.pooldiff);
+  			if(pda.pooldiff != ''){
+  				config.poolDifficulty = parseInt(pda.pooldiff);
+  			}
+  			this.saveConfig(config, callback);
+  			//console.info('Answer:', JSON.stringify(config,null,2));
+  		});*/
+  		config.poolDifficulty = -1;
+  		this.saveConfig(config, callback); //always -1 on pools now
+  		
+  	}
+  	else{
+  		this.saveConfig(config, callback);
+  		//console.info('Answer:', JSON.stringify(config,null,2));
+  	}
+  
 	}
 	saveConfig(config, callback){
 		let configPath = __dirname+'/../config.json';
@@ -331,9 +373,29 @@ class HandyConfigurator{
 				//brand new
 				fs.writeFileSync(configPath,JSON.stringify(config,null,2));
 			}
-			callback();
+			this.finish(callback);
+			
 		});
 		
+		
+	}
+	finish(callback){
+		if (process.platform === "win32") {
+		  var rl = require("readline").createInterface({
+		    input: process.stdin,
+		    output: process.stdout
+		  });
+
+		  rl.on("SIGINT", function () {
+		    process.emit("SIGINT");
+		  });
+		}
+
+		process.on("SIGINT", function () {
+		  //graceful shutdown
+		  process.exit();
+		});
+		callback();
 		
 	}
 	rainbow(){

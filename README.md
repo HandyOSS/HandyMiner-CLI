@@ -22,18 +22,21 @@ HANDYMINER
 
 [Configurator](#minerConfigurator)
 
+[Advanced Options](#advancedOptions)
+
 [FAQ](#faq)
 
-**Current Hashrates for King Cobra 0.0.3:**
+**Current Hashrates for King Cobra 0.0.4:**
 
 |  Hashing Algorithm 	|   Maker	|   Model	|  Avg. Hashrate	|  Windows/Linux/MacOS 	|
 |---	|---	|---	|---	|---	|
 |   Handshake(Blake2bSHA3)	|  AMD 	|  Radeon VII|   384mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 5700XT|   303mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  Vega 64|   235mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 580|   149mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 5700XT|   330mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  Vega 64|   310mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 480-580|   150mh	| Yes	
+|   Handshake(Blake2bSHA3)  |  AMD  |  RX 580 XFX Black OC|   178mh  | Yes 
 |   Handshake(Blake2bSHA3)	|  AMD 	|  RX 5700 (non xt)|  250mh 	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 570 |   157mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 570 |   150mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   508mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   385mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2070 |   271mh	| Yes	
@@ -42,20 +45,19 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1050TI |   73mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
 
-**King Cobra 0.0.3 Release 02/21/2020::**
+**Hangry Mode 0.0.4 Release 03/06/2020::**
+- Lots of bugfixes/enhancements with pools
+- Reported inline with Pool Estimated Hashrates
+- Major increases for AMD Vega56/64 and 5700XT
+- [Hangry Mode](#hangryInfo) for AMD 5700 for a bonus 25MH
+
+**Previous King Cobra 0.0.3 Release 02/21/2020::**
 - Add support for Pool Flare
 - Fix memory leak in dashboard chart
 - Mac permissions fix
 - Update sample config
 
-**Previous Release Updates::**
-- **HUGE PERFORMANCE** improvements: variable 1-2x improvement for hashrates across Nvidia and AMD.
-- Fixed dashboard errors for Nvidia HandyMiner users.
-- Added support for F2Pool.
-- Fixed "high hash" errors affecting some miners on certain mining pools.
-- Improved Windows/MacOS installation packages and setup.
-- Signed tar.xz included under [releases](https://github.com/HandyMiner/HandyMiner-CLI/releases) so HandyMiner can be packaged elsewhere 
-- **Benchmarks and other updated information will be added here as we obtain them from the community**
+**Benchmarks and other updated information will be added here as we obtain them from the community**
 
 
 A simple wrapper for the Blake2bSHA3 (Handshake) PoW OpenCL Miner
@@ -144,7 +146,6 @@ Required items to have ready for configuration:
 Optional configuration items (just leave blank and hit enter if you dont know) :
 1. Pool or solo node port (probably 3008)
 2. The stratum password (optional)
-3. (Pool-mode only) pool difficulty (1024 minumum on 6block, 512 minumum on hnspool), or set to -1 for variable difficulty.
 
 <a id="poolParameters"></a>
 ## POOL SETTINGS
@@ -186,6 +187,26 @@ registered:
 **username**: hnspool_registered_username
 **password**: hnspool_registered_password
 
+<a id="advancedOptions"></a>
+## Advanced Options:
+
+**App/API developers**: You can run like ```HANDYRAW=true node mine.js``` or set the environment variable ```HANDYRAW=true``` and the miner executable will output raw JSON. The dashboard application is built using the raw CLI JSON output.
+
+**Multiple Configs!**: If you want to use different worker names or pools with the same miner executable, you can pass in your custom config.json into the miner like:
+```node mine.js myCustomConfigName.json```
+Note the miner will default to config.json without this argument.
+
+<a id="hangryInfo"></a>
+**Hangry Mode Update 3/6/2020**::
+We released Hangry Mode for Vega56/64 and AMD 5700s. Hangry Mode is enabled by default for Vega 56/64, but can only be enabled for the AMD 5700 as an option (for an extra 25MH bump). Hangry Mode is more-or-less stable for 5700 but can use more power. If you are close to capacity on your PSU it will probably fall over. To enable Hangry Mode for AMD5700:: 
+1. You can remove your config.json and run ```node configure.js``` to auto-generate your config.json file with hangry mode enabled, or 
+2. add the following line to the end of your existing config.json like::
+```
+...
+"poolDifficulty": -1,
+"muteWinningFanfare": false,
+"enableHangryMode": true
+```
 
 <a id="faq"></a>
 ## Mining FAQ:
