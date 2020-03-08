@@ -30,20 +30,20 @@ HANDYMINER
 
 |  Hashing Algorithm 	|   Maker	|   Model	|  Avg. Hashrate	|  Windows/Linux/MacOS 	|
 |---	|---	|---	|---	|---	|
-|   Handshake(Blake2bSHA3)	|  AMD 	|  Radeon VII|   384mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 5700XT|   330mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  Radeon VII|   396mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 5700XT|   324mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 5700 (non xt)|  290mh 	| Yes	
 |   Handshake(Blake2bSHA3)	|  AMD 	|  Vega 64|   310mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  AMD 	|  RX 480-580|   150mh	| Yes	
 |   Handshake(Blake2bSHA3)  |  AMD  |  RX 580 XFX Black OC|   178mh  | Yes 
-|   Handshake(Blake2bSHA3)	|  AMD 	|  RX 5700 (non xt)|  250mh 	| Yes	
 |   Handshake(Blake2bSHA3)	|  AMD 	|  RX 570 |   150mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   508mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   385mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2070 |   271mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   506mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   347mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 |   341mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2070 |   264mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1080TI |   Pending	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1070 |   182mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1050TI |   73mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
 
 **Hangry Mode 0.0.4 Release 03/06/2020::**
 - Bug fixes and general enhancements for pool mining stability
