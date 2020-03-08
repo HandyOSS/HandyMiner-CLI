@@ -46,7 +46,7 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
 
 **Hangry Mode 0.0.4 Release 03/06/2020::**
-- Lots of bugfixes/enhancements with pools
+- Bug fixes and general enhancements for pool mining stability
 - Reported inline with Pool Estimated Hashrates
 - Major increases for AMD Vega56/64 and 5700XT
 - [Hangry Mode](#hangryInfo) for AMD 5700 for a bonus 25MH
