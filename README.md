@@ -45,6 +45,9 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1050TI |   73mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
 
+**HandyMiner 0.0.5 Release 03/23/2020**
+- hnspool header formatting bugfix
+
 **Hangry Mode 0.0.4 Release 03/06/2020::**
 - Bug fixes and general enhancements for pool mining stability
 - Reported inline with Pool Estimated Hashrates
