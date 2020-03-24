@@ -1,20 +1,20 @@
 HANDYMINER
 2020 Alex Smith <alex.smith@earthlab.tech>
 
-### [HandyMiner Quick Start Guide](https://handyminer.github.io/HandyGuide/)
+### [🐍HandyMiner Quick Start Guide🐍](https://handyminer.github.io/HandyGuide/)
 
 **HandyMiner Team Donation Address (HNS): hs1qwfpd5ukdwdew7tn7vdgtk0luglgckp3klj44f8**
 
 **Quick Links**
-[Download Latest from Releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
+- [Download Latest from Releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
 
-[Prerequisites and Installation](#buildInstructions)
+- [Prerequisites and Installation](#buildInstructions)
 
-[Pool Settings](#poolParameters)
+- [Fullnode Solo-Mining Setup](#runFullnode)
 
-[Fullnode Solo-Mining Setup](#runFullnode)
+- [Pool Settings](#poolParameters)
 
-[FAQ](#faq)
+- [FAQ](#faq)
 
 **HandyMiner Social Channels:**
 
