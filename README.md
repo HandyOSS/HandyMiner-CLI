@@ -5,28 +5,22 @@ HANDYMINER
 
 **HandyMiner Team Donation Address (HNS): hs1qwfpd5ukdwdew7tn7vdgtk0luglgckp3klj44f8**
 
-**HandyMiner Social Channels:**
-
-[HandyMiner Support Telegram](http://t.me/handshakemining); [Handshake Mining Discord](https://discord.gg/VMUneym)
-
-
 **Quick Links**
+[Download Latest from Releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
 
 [Prerequisites and Installation](#buildInstructions)
 
-[Download Latest from Releases](https://github.com/HandyMiner/HandyMiner-CLI/releases)
-
 [Pool Settings](#poolParameters)
 
-[Running](#running)
-
-[Configurator](#minerConfigurator)
-
-[Advanced Options](#advancedOptions)
+[Fullnode Solo-Mining Setup](#runFullnode)
 
 [FAQ](#faq)
 
-**Current Hashrates for King Cobra 0.0.4:**
+**HandyMiner Social Channels:**
+
+[HandyMiner/HNS Telegram](http://t.me/handshakemining); [Handshake Mining/HNS Discord](https://discord.gg/VMUneym)
+
+**Current Hashrates for King Cobra 0.0.5:**
 
 |  Hashing Algorithm 	|   Maker	|   Model	|  Avg. Hashrate	|  Windows/Linux/MacOS 	|
 |---	|---	|---	|---	|---	|
@@ -46,7 +40,8 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
 
 **HandyMiner 0.0.5 Release 03/23/2020**
-- hnspool header formatting bugfix
+- HNSPool header formatting bug-fix
+- Added auto-reconnect for auth-failed error after stratum connects.
 
 **Hangry Mode 0.0.4 Release 03/06/2020::**
 - Bug fixes and general enhancements for pool mining stability
