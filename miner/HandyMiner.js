@@ -507,12 +507,16 @@ class HandyMiner {
           }
           else{
             if(process.env.HANDYRAW){
-              process.stdout.write(JSON.stringify({type:'stratumLog',data:'HNSPOOL AUTHORIZATION FAILED.'})+'\n')
+              process.stdout.write(JSON.stringify({type:'stratumLog',data:'HNSPOOL AUTHORIZATION FAILED. RETRY IN 20s.'})+'\n')
             }
             else{
               console.log("HANDY:: \x1b[36mHNSPOOL AUTHORIZATION FAILED\x1b[0m")
+              console.log("HANDY:: \x1b[36m RETRY IN 20s\x1b[0m")
             }
-            process.exit(0);
+            //process.exit(0);
+            setTimeout(()=>{
+              this.startSocket();
+            },20000);
           } 
         break;
         case 'subscribe':
@@ -912,6 +916,7 @@ class HandyMiner {
     let version;
     let bits;
     let time;
+    
     if(this.IS_HNSPOOLSTRATUM && !this.isMGoing){
       //support HNSPOOL response format
       reservedRoot = response.params[3]; //these are prob all zeroes rn but here for future use
@@ -921,6 +926,7 @@ class HandyMiner {
       version = response.params[7];
       bits = response.params[8];
       time = response.params[9];
+
     }
     else{
       witnessRoot = response.params[3];
@@ -929,6 +935,25 @@ class HandyMiner {
       version = parseInt(response.params[6], 16);
       bits = parseInt(response.params[7], 16);
       time = parseInt(response.params[8], 16);
+    }
+
+    if( this.IS_HNSPOOLSTRATUM && (!Number.isSafeInteger(version) || !Number.isSafeInteger(bits) || !Number.isSafeInteger(time)) ){
+      //if version,bits,time are not safe integer, reconnect to hnspool
+      this.isMGoing = false;
+      this.hasConnectionError = true;
+      this.isKilling = false;
+      if(typeof this.redundant != "undefined"){
+        this.redundant.destroy();
+        delete this.redundant;
+      }
+      else{
+        this.server.destroy();
+        
+      }
+      //restart hnspool connection
+      this.handleStratumReconnect();
+        
+      return;  
     }
 
     let bt = {};//new template.BlockTemplate();
@@ -1696,6 +1721,9 @@ class HandyMiner {
         intensity:workObject.intensity,
         createdAt:new Date().getTime()/1000
       };
+      if(typeof work == "undefined"){
+        return;
+      }
       _this.workByHeaders[work.header.toString('hex')] = _this.gpuDeviceBlocks[workObject.id+'_'+workObject.platform];
 
       //now write work
