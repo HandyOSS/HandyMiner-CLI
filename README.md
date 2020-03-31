@@ -37,7 +37,6 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1080TI |   Pending	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1070 |   182mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1050TI |   73mh	| Yes	
-|   Handshake(Blake2bSHA3)	|  Nvidia 	|  Pending |   Pending	| Yes	
 
 **HandyMiner 0.0.5 Release 03/23/2020**
 - HNSPool header formatting bug-fix
