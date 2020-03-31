@@ -18,7 +18,7 @@ HANDYMINER
 
 **HandyMiner Social Channels:**
 
-[HandyMiner/HNS Telegram](http://t.me/handshakemining); [Handshake Mining/HNS Discord](https://discord.gg/VMUneym)
+[HandshakeTalk Telegram](https://t.me/handshaketalk); [Handshake Mining/HNS Discord](https://discord.gg/VMUneym)
 
 **Current Hashrates for King Cobra 0.0.5:**
 
