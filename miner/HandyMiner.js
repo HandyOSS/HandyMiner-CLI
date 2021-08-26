@@ -220,7 +220,7 @@ class HandyMiner {
     }
     if(!fs.existsSync(process.env.HOME+'/.HandyMiner/version.txt')){
       let myMin = Math.floor(Math.random()*59.999);
-      fs.writeFileSync(process.env.HOME+'/.HandyMiner/version.txt',myMin);
+      fs.writeFileSync(process.env.HOME+'/.HandyMiner/version.txt',myMin.toString());
     }
     let gpus = this.gpuListString.split(',').map(s=>{return s.trim();});
     let platform = this.platformID;
