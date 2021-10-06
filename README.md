@@ -36,6 +36,7 @@ HANDYMINER
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080TI|   508mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2080 Super|   385mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2070 |   271mh	| Yes	
+|   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 2060 Super |   235mh	| Yes
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1080TI |   Pending	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1070 |   182mh	| Yes	
 |   Handshake(Blake2bSHA3)	|  Nvidia 	|  GTX 1050TI |   73mh	| Yes	
